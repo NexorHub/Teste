@@ -471,16 +471,11 @@ end
 
 local function AS_save()
     if not _AS.enabled or not _canWrite then return end
-    local lines = {}
+    local out = {}
     for k, v in pairs(_AS.data) do
-        -- serializa: key=valor (sem newlines no valor)
-        local sv = tostring(v):gsub("
-","\n")
-        table.insert(lines, k .. "=" .. sv)
+        table.insert(out, k .. "=" .. tostring(v))
     end
-    pcall(function() writefile(_AS.file, table.concat(lines, "
-")) end)
-    _AS.dirty = false
+    pcall(function() writefile(_AS.file, table.concat(out, "\n")) end)
 end
 
 local function AS_load()
@@ -488,13 +483,9 @@ local function AS_load()
     local ok, raw = pcall(function() return readfile(_AS.file) end)
     if not ok or type(raw) ~= "string" then return end
     _AS.data = {}
-    for line in raw:gmatch("[^
-]+") do
-        local k, v = line:match("^(.-)=(.*)$")
-        if k and v then
-            _AS.data[k] = v:gsub("\n","
-")
-        end
+    for line in (raw .. "\n"):gmatch("([^\n]*)\n") do
+        local k, v = line:match("^(.-)=(.+)$")
+        if k and v then _AS.data[k] = v end
     end
 end
 
@@ -1792,53 +1783,41 @@ local function BuildIntroScreen(sg, opts, onDone)
     local cardSk = SK(card, TH.Cyan, 1.5, 0.15)
     RegAC(cardSk, "Color", "Cyan")
 
-    -- Padding interno via UIListLayout vertical
-    PD(card, 18, 18, 20, 20)
-    LV(card, 10)
+    -- Layout: tudo com posições fixas simples — sem LV para evitar conflito com topBar
+    local PAD = 20  -- padding lateral
+    local Y   = 0   -- cursor Y interno
 
-    -- Linha de acento no topo (posição absoluta, não participa do layout)
-    local topBar = Fr(TH.Cyan, 0, "_TB", 10001)
-    topBar.Size        = UDim2.new(1, 0, 0, 3)
-    topBar.Position    = UDim2.fromOffset(0, 0)
-    topBar.AnchorPoint = Vector2.new(0, 0)
-    topBar.Parent      = card
-    topBar.LayoutOrder = -99
+    -- Linha de acento no topo do card (posição absoluta, Z alto)
+    local topBar = Fr(TH.Cyan, 0, "_TB", 10002)
+    topBar.Size     = UDim2.new(1, 0, 0, 3)
+    topBar.Position = UDim2.fromOffset(0, 0)
+    topBar.Parent   = card
     RC(topBar, 2)
     RegAC(topBar, "BackgroundColor3", "Cyan")
+    Y = Y + 14  -- espaço após a barra
 
     -- Título principal
     local titleLbl = Lb(title, TH.T1, 20, TH.FB, Enum.TextXAlignment.Center, 10001)
-    titleLbl.Size        = UDim2.new(1, 0, 0, 28)
-    titleLbl.LayoutOrder = 1
-    titleLbl.Parent      = card
+    titleLbl.Size     = UDim2.new(1, -PAD*2, 0, 26)
+    titleLbl.Position = UDim2.fromOffset(PAD, Y)
+    titleLbl.Parent   = card
+    Y = Y + 26 + 6
 
-    -- Subtítulo (TextWrapped para não cortar)
-    local subLbl = Instance.new("TextLabel")
-    subLbl.BackgroundTransparency = 1
-    subLbl.TextColor3   = TH.T2
-    subLbl.Font         = TH.FR
-    subLbl.TextSize     = SA.FS - 1
-    subLbl.Text         = subtitle
-    subLbl.TextWrapped  = true
-    subLbl.AutomaticSize = Enum.AutomaticSize.Y
-    subLbl.Size         = UDim2.new(1, 0, 0, 0)
-    subLbl.TextXAlignment = Enum.TextXAlignment.Center
-    subLbl.ZIndex       = 10001
-    subLbl.LayoutOrder  = 2
-    subLbl.Parent       = card
-
-    -- Espaçador visual
-    local spacer = Fr(TH.Surface, 1, "_Sp", 10001)
-    spacer.Size        = UDim2.new(1, 0, 0, 4)
-    spacer.LayoutOrder = 3
-    spacer.Parent      = card
+    -- Subtítulo
+    local subLbl = Lb(subtitle, TH.T2, SA.FS - 1, TH.FR, Enum.TextXAlignment.Center, 10001)
+    subLbl.Size        = UDim2.new(1, -PAD*2, 0, 16)
+    subLbl.Position    = UDim2.fromOffset(PAD, Y)
+    subLbl.TextWrapped = true
+    subLbl.Parent      = card
+    Y = Y + 16 + 14
 
     -- Barra de progresso (fundo)
     local barBg = Fr(TH.Border, 0, "_BarBg", 10001)
-    barBg.Size        = UDim2.new(1, 0, 0, 5)
-    barBg.LayoutOrder = 4
-    barBg.Parent      = card
+    barBg.Position = UDim2.fromOffset(PAD, Y)
+    barBg.Size     = UDim2.new(1, -PAD*2, 0, 5)
+    barBg.Parent   = card
     RC(barBg, 3)
+    Y = Y + 5 + 6
 
     -- Barra de progresso (fill)
     local barFill = Fr(TH.Cyan, 0, "_BarFill", 10002)
@@ -1849,10 +1828,15 @@ local function BuildIntroScreen(sg, opts, onDone)
 
     -- Texto de porcentagem
     local pctLbl = Lb("0%", TH.TAcc, SA.FS - 2, TH.FM, Enum.TextXAlignment.Center, 10001)
-    pctLbl.Size        = UDim2.new(1, 0, 0, 14)
-    pctLbl.LayoutOrder = 5
-    pctLbl.Parent      = card
+    pctLbl.Size     = UDim2.new(1, -PAD*2, 0, 14)
+    pctLbl.Position = UDim2.fromOffset(PAD, Y)
+    pctLbl.Parent   = card
     RegAC(pctLbl, "TextColor3", "TAcc")
+    Y = Y + 14 + 14
+
+    -- Ajusta altura final do card
+    card.Size          = UDim2.fromOffset(cardW, Y)
+    card.AutomaticSize = Enum.AutomaticSize.None
 
     -- Animação de entrada
     card.BackgroundTransparency  = 1
