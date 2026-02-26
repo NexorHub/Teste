@@ -526,14 +526,40 @@ function BastardXHub:Window(GuiConfig)
         bronze   = Color3.fromRGB(20,  12,  4),
         forest   = Color3.fromRGB(6,   18,  10),
         -- ── Extras
-        ash      = Color3.fromRGB(14,  14,  16),   -- cinza-azulado neutro
-        void     = Color3.fromRGB(0,   0,   0),    -- preto absoluto
-        aurora   = Color3.fromRGB(4,   20,  16),   -- verde-teal escuro
-        ember    = Color3.fromRGB(24,  8,   2),    -- laranja-brasa
-        lilac    = Color3.fromRGB(16,  6,   22),   -- púrpura-rosa escuro
-        storm    = Color3.fromRGB(8,   10,  20),   -- azul-tempestade
-        rust     = Color3.fromRGB(22,  9,   4),    -- ferrugem escuro
-        pine     = Color3.fromRGB(4,   16,  8),    -- verde-pinheiro escuro
+        ash      = Color3.fromRGB(14,  14,  16),
+        void     = Color3.fromRGB(0,   0,   0),
+        aurora   = Color3.fromRGB(4,   20,  16),
+        ember    = Color3.fromRGB(24,  8,   2),
+        lilac    = Color3.fromRGB(16,  6,   22),
+        storm    = Color3.fromRGB(8,   10,  20),
+        rust     = Color3.fromRGB(22,  9,   4),
+        pine     = Color3.fromRGB(4,   16,  8),
+    }
+
+    -- Cor de anel/stroke do FloatBtn sincronizada com cada tema
+    local ThemeAccents = {
+        darker   = Color3.fromRGB(200, 200, 200),
+        dark     = Color3.fromRGB(200, 200, 200),
+        carbon   = Color3.fromRGB(180, 180, 180),
+        obsidian = Color3.fromRGB(160, 160, 180),
+        midnight = Color3.fromRGB(100, 120, 240),
+        navy     = Color3.fromRGB(80,  130, 255),
+        ocean    = Color3.fromRGB(60,  160, 240),
+        teal     = Color3.fromRGB(60,  210, 200),
+        slate    = Color3.fromRGB(140, 160, 200),
+        grape    = Color3.fromRGB(170, 90,  255),
+        rose     = Color3.fromRGB(255, 110, 150),
+        crimson  = Color3.fromRGB(240, 70,  80),
+        bronze   = Color3.fromRGB(220, 160, 60),
+        forest   = Color3.fromRGB(80,  200, 100),
+        ash      = Color3.fromRGB(170, 170, 180),
+        void     = Color3.fromRGB(140, 140, 140),
+        aurora   = Color3.fromRGB(60,  220, 170),
+        ember    = Color3.fromRGB(255, 130, 50),
+        lilac    = Color3.fromRGB(200, 120, 255),
+        storm    = Color3.fromRGB(100, 140, 230),
+        rust     = Color3.fromRGB(210, 100, 50),
+        pine     = Color3.fromRGB(80,  190, 100),
     }
     -- Cor padrão: preto puro
     GuiConfig.ThemePreset  = GuiConfig.ThemePreset or "darker"
@@ -3179,6 +3205,15 @@ function BastardXHub:Window(GuiConfig)
 
     Tabs._main = Main
 
+    --- Registra o FloatBtn para que SetTheme sincronize anel/stroke automaticamente
+    --- @param floatFunc table — objeto retornado por BastardXHub:FloatBtn()
+    function Tabs:RegisterFloat(floatFunc)
+        self._floatRef = floatFunc
+        -- Sincroniza imediatamente com o tema atual
+        local accent = ThemeAccents[GuiConfig.ThemePreset] or Color3.fromRGB(200,200,200)
+        floatFunc:SetColor(accent, Color3.fromRGB(28,28,28))
+    end
+
     --- Retorna lista de nomes de temas disponíveis
     function Tabs:GetThemes()
         local names = {}
@@ -3187,14 +3222,26 @@ function BastardXHub:Window(GuiConfig)
         return names
     end
 
-    --- Troca o tema de fundo em tempo real
+    --- Retorna a Color3 de um tema pelo nome
+    --- @param themeName string
+    function Tabs:GetThemeColor(themeName)
+        return ThemeColors[themeName]
+    end
+
+    --- Troca o tema de fundo em tempo real e sincroniza o FloatBtn
     --- @param themeName string  — chave de ThemeColors (ex: "midnight", "navy", "grape"…)
     function Tabs:SetTheme(themeName)
         local col = ThemeColors[themeName]
         if col then
+            GuiConfig.ThemePreset = themeName
             TweenService:Create(Main,
                 TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
                 { BackgroundColor3 = col }):Play()
+            -- Sincroniza anel/stroke/fundo do FloatBtn com o accent do tema
+            if self._floatRef then
+                local accent = ThemeAccents[themeName] or Color3.fromRGB(200,200,200)
+                self._floatRef:SetColor(accent, Color3.fromRGB(28,28,28))
+            end
         else
             warn("BastardXHub:SetTheme — tema desconhecido: " .. tostring(themeName))
         end
