@@ -1,43 +1,22 @@
 local HttpService = game:GetService("HttpService")
 
 -- ╔══════════════════════════════════════════════════════════════╗
--- ║  SISTEMA DE ARQUIVOS SEGURO                                 ║
+-- ║  SALVAMENTO EM MEMÓRIA (Workspace)                           ║
 -- ╚══════════════════════════════════════════════════════════════╝
 
-local _canWrite  = type(writefile) == "function"
-local _canRead   = type(readfile)  == "function"
-local _canIsfile = type(isfile)    == "function"
-local _canMkdir  = type(makefolder) == "function"
+local ConfigData = {}
+local Elements = {}
+local CURRENT_VERSION = nil
+local CURRENT_THEME = "Dark"
 
--- Criar pastas apenas se o executor permitir
-if _canMkdir then
-    pcall(function()
-        if not _canIsfile or not isfile("Bastard X Hub") then
-            makefolder("Bastard X Hub")
-        end
-    end)
-    pcall(function()
-        if not _canIsfile or not isfile("Bastard X Hub/Config") then
-            makefolder("Bastard X Hub/Config")
-        end
-    end)
-end
-
--- Obter nome do jogo de forma segura
+-- Obter nome do jogo
 local _ok, _info = pcall(function()
     return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
 end)
 local gameName = _ok and tostring(_info) or "UnknownGame"
-gameName         = gameName:gsub("[^%w_ ]", "")
-gameName         = gameName:gsub("%s+", "_")
+gameName = gameName:gsub("[^%w_ ]", "")
+gameName = gameName:gsub("%s+", "_")
 if gameName == "" then gameName = "UnknownGame" end
-
-local ConfigFile = "Bastard X Hub/Config/Bastard_" .. gameName .. ".json"
-local THEME_FILE = "Bastard X Hub/Config/Theme_" .. gameName .. ".txt"
-
-ConfigData       = {}
-Elements         = {}
-CURRENT_VERSION  = nil
 
 -- ╔══════════════════════════════════════════════════════════════╗
 -- ║  TEMAS PADRÃO                                                ║
@@ -128,53 +107,22 @@ local PALETTES = {
 -- ╚══════════════════════════════════════════════════════════════╝
 
 local function SaveTheme(name)
-    if not _canWrite then return end
-    pcall(function()
-        writefile(THEME_FILE, name)
-    end)
+    CURRENT_THEME = name
+    print("[Bastard X Hub] Tema alterado para: " .. name)
 end
 
 local function LoadTheme()
-    if not _canRead then return "Dark" end
-    local ok, data = pcall(function()
-        return readfile(THEME_FILE)
-    end)
-    if ok and type(data) == "string" then
-        data = data:match("^%s*(.-)%s*$")
-        if PALETTES[data] then return data end
-    end
-    return "Dark"
+    return CURRENT_THEME
 end
 
 function SaveConfig()
-    if not _canWrite then return end
-    pcall(function()
-        ConfigData._version = CURRENT_VERSION
-        writefile(ConfigFile, HttpService:JSONEncode(ConfigData))
-    end)
+    print("[Bastard X Hub] Config salva na memória")
+    print("[Bastard X Hub] ConfigData: " .. HttpService:JSONEncode(ConfigData))
 end
 
 function LoadConfigFromFile()
-    if not CURRENT_VERSION or not _canRead then return end
-    if _canIsfile then
-        local ok = pcall(function()
-            if isfile(ConfigFile) then
-                local result = HttpService:JSONDecode(readfile(ConfigFile))
-                if result._version == CURRENT_VERSION then
-                    ConfigData = result
-                else
-                    ConfigData = { _version = CURRENT_VERSION }
-                end
-            else
-                ConfigData = { _version = CURRENT_VERSION }
-            end
-        end)
-        if not ok then
-            ConfigData = { _version = CURRENT_VERSION }
-        end
-    else
-        ConfigData = { _version = CURRENT_VERSION }
-    end
+    if not CURRENT_VERSION then return end
+    print("[Bastard X Hub] Config carregada da memória")
 end
 
 function LoadConfigElements()
