@@ -1,12 +1,29 @@
 local HttpService = game:GetService("HttpService")
 
-if not isfolder("Bastard X Hub") then
-    makefolder("Bastard X Hub")
-end
-if not isfolder("Bastard X Hub/Config") then
-    makefolder("Bastard X Hub/Config")
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║  SISTEMA DE ARQUIVOS SEGURO                                 ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
+local _canWrite  = type(writefile) == "function"
+local _canRead   = type(readfile)  == "function"
+local _canIsfile = type(isfile)    == "function"
+local _canMkdir  = type(makefolder) == "function"
+
+-- Criar pastas apenas se o executor permitir
+if _canMkdir then
+    pcall(function()
+        if not _canIsfile or not isfile("Bastard X Hub") then
+            makefolder("Bastard X Hub")
+        end
+    end)
+    pcall(function()
+        if not _canIsfile or not isfile("Bastard X Hub/Config") then
+            makefolder("Bastard X Hub/Config")
+        end
+    end)
 end
 
+-- Obter nome do jogo de forma segura
 local _ok, _info = pcall(function()
     return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
 end)
@@ -111,23 +128,16 @@ local PALETTES = {
 -- ╚══════════════════════════════════════════════════════════════╝
 
 local function SaveTheme(name)
-    if not (type(writefile) == "function") then return end
+    if not _canWrite then return end
     pcall(function()
-        if type(isfile) == "function" and isfile(THEME_FILE) then
-            writefile(THEME_FILE, name)
-        else
-            writefile(THEME_FILE, name)
-        end
+        writefile(THEME_FILE, name)
     end)
 end
 
 local function LoadTheme()
-    if not (type(readfile) == "function") then return "Dark" end
+    if not _canRead then return "Dark" end
     local ok, data = pcall(function()
-        if type(isfile) == "function" and isfile(THEME_FILE) then
-            return readfile(THEME_FILE)
-        end
-        return nil
+        return readfile(THEME_FILE)
     end)
     if ok and type(data) == "string" then
         data = data:match("^%s*(.-)%s*$")
@@ -137,25 +147,29 @@ local function LoadTheme()
 end
 
 function SaveConfig()
-    if writefile then
+    if not _canWrite then return end
+    pcall(function()
         ConfigData._version = CURRENT_VERSION
         writefile(ConfigFile, HttpService:JSONEncode(ConfigData))
-    end
+    end)
 end
 
 function LoadConfigFromFile()
-    if not CURRENT_VERSION then return end
-    if isfile and isfile(ConfigFile) then
-        local success, result = pcall(function()
-            return HttpService:JSONDecode(readfile(ConfigFile))
-        end)
-        if success and type(result) == "table" then
-            if result._version == CURRENT_VERSION then
-                ConfigData = result
+    if not CURRENT_VERSION or not _canRead then return end
+    if _canIsfile then
+        local ok = pcall(function()
+            if isfile(ConfigFile) then
+                local result = HttpService:JSONDecode(readfile(ConfigFile))
+                if result._version == CURRENT_VERSION then
+                    ConfigData = result
+                else
+                    ConfigData = { _version = CURRENT_VERSION }
+                end
             else
                 ConfigData = { _version = CURRENT_VERSION }
             end
-        else
+        end)
+        if not ok then
             ConfigData = { _version = CURRENT_VERSION }
         end
     else
