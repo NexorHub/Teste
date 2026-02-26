@@ -1,9 +1,12 @@
 --[[
 ╔══════════════════════════════════════════════════════════════╗
-║  NexusUI  ·  v3.1.0  ·  Professional Roblox GUI Library     ║
-║  Theme    : Neon Cyan / Deep Black                           ║
-║  Tabs     : Horizontal top bar  (Rayfield style)             ║
-║  Fix v3.1 : Dropdown overlay  ·  Layout  ·  Section divider ║
+║  NexusUI  ·  v3.2.0  ·  Professional Roblox GUI Library     ║
+║  Temas    : 8 paletas (Cyan/Blue/Purple/Green/Red/Pink/      ║
+║             Gold/White) com troca por swatches               ║
+║  FloatBtn : PNG sem tint · fundo troca com tema (sem efeito  ║
+║             na imagem)                                       ║
+║  Config   : Painel ⚙ ao lado dos botões – tema, transp.,    ║
+║             tamanho da janela                                ║
 ╚══════════════════════════════════════════════════════════════╝
 
   QUICK START:
@@ -88,7 +91,8 @@ local TH = {
 }
 
 -- ═══════════════════════════════════════════════════════════════
---  ACCENT PALETTES  (Cyan=padrão | Red | Purple=Gojo)
+--  ACCENT PALETTES
+--  Cyan | Red | Purple | Green | Gold | Pink | Blue | White
 -- ═══════════════════════════════════════════════════════════════
 local PALETTES = {
     Cyan = {
@@ -97,6 +101,8 @@ local PALETTES = {
         CyanS = Color3.fromHex("00CCCC"),
         TAcc  = Color3.fromHex("00FFFF"),
         Info  = Color3.fromHex("00CCFF"),
+        Label = "Ciano",
+        Swatch = Color3.fromHex("00FFFF"),
     },
     Red = {
         Cyan  = Color3.fromHex("FF3333"),
@@ -104,13 +110,62 @@ local PALETTES = {
         CyanS = Color3.fromHex("DD2222"),
         TAcc  = Color3.fromHex("FF3333"),
         Info  = Color3.fromHex("FF6655"),
+        Label = "Vermelho",
+        Swatch = Color3.fromHex("FF3333"),
     },
-    Purple = {  -- Satoru Gojo
+    Purple = {
         Cyan  = Color3.fromHex("9B59FF"),
         CyanD = Color3.fromHex("6633CC"),
         CyanS = Color3.fromHex("7F44EE"),
         TAcc  = Color3.fromHex("9B59FF"),
         Info  = Color3.fromHex("BB88FF"),
+        Label = "Roxo",
+        Swatch = Color3.fromHex("9B59FF"),
+    },
+    Green = {
+        Cyan  = Color3.fromHex("00FF88"),
+        CyanD = Color3.fromHex("00AA55"),
+        CyanS = Color3.fromHex("00CC66"),
+        TAcc  = Color3.fromHex("00FF88"),
+        Info  = Color3.fromHex("44FFAA"),
+        Label = "Verde",
+        Swatch = Color3.fromHex("00FF88"),
+    },
+    Gold = {
+        Cyan  = Color3.fromHex("FFD700"),
+        CyanD = Color3.fromHex("CC9900"),
+        CyanS = Color3.fromHex("EEBB00"),
+        TAcc  = Color3.fromHex("FFD700"),
+        Info  = Color3.fromHex("FFEE66"),
+        Label = "Dourado",
+        Swatch = Color3.fromHex("FFD700"),
+    },
+    Pink = {
+        Cyan  = Color3.fromHex("FF44AA"),
+        CyanD = Color3.fromHex("CC1177"),
+        CyanS = Color3.fromHex("EE2288"),
+        TAcc  = Color3.fromHex("FF44AA"),
+        Info  = Color3.fromHex("FF88CC"),
+        Label = "Rosa",
+        Swatch = Color3.fromHex("FF44AA"),
+    },
+    Blue = {
+        Cyan  = Color3.fromHex("4488FF"),
+        CyanD = Color3.fromHex("2255CC"),
+        CyanS = Color3.fromHex("3366EE"),
+        TAcc  = Color3.fromHex("4488FF"),
+        Info  = Color3.fromHex("88BBFF"),
+        Label = "Azul",
+        Swatch = Color3.fromHex("4488FF"),
+    },
+    White = {
+        Cyan  = Color3.fromHex("DDDDDD"),
+        CyanD = Color3.fromHex("AAAAAA"),
+        CyanS = Color3.fromHex("CCCCCC"),
+        TAcc  = Color3.fromHex("FFFFFF"),
+        Info  = Color3.fromHex("EEEEEE"),
+        Label = "Branco",
+        Swatch = Color3.fromHex("DDDDDD"),
     },
 }
 
@@ -1049,19 +1104,25 @@ local function FloatBtn(sg,iconNameOrId,onToggle)
 
     local fb = IB(TH.Cyan, 300); fb.Name = "_NexFloat"
     fb.AnchorPoint       = Vector2.new(0.5, 0.5)
-    fb.BackgroundColor3  = TH.SurfaceB
+    fb.BackgroundColor3  = TH.CyanD
     fb.Position          = UDim2.new(0.05, 0, 0.5, 0)
     fb.Size              = UDim2.fromOffset(S, S)
     fb.Parent            = sg
     RC(fb, S / 2)
+    -- PNG sem fundo: ImageColor3 fica branco (sem tint) para preservar cores originais da imagem
+    fb.ImageColor3 = Color3.new(1, 1, 1)
     local fbStroke = SK(fb, TH.Cyan, 1.5, 0)
     RegAC(fbStroke, "Color", "Cyan")
-    RegAC(fb, "ImageColor3", "Cyan")
-    -- toggled começa true; callback atualiza bg correto
+    -- toggled começa true; ao trocar de tema o fundo muda automaticamente (sem afetar a imagem PNG)
     local toggled = true
     RegACFn(function(pal)
         if fb and fb.Parent then
+            -- Fundo troca com o tema: CyanD quando visível, SurfaceB quando oculto
             TweenService:Create(fb, TH.Med, {BackgroundColor3 = toggled and pal.CyanD or TH.SurfaceB}):Play()
+            TweenService:Create(fbStroke, TH.Med, {Color = pal.Cyan}):Play()
+        end
+        if ring and ring.Parent then
+            TweenService:Create(ring, TH.Med, {BackgroundColor3 = pal.Cyan}):Play()
         end
     end)
     if iconNameOrId then Icons.Apply(iconNameOrId, fb) end
@@ -1108,6 +1169,7 @@ local function FloatBtn(sg,iconNameOrId,onToggle)
     fb.MouseButton1Click:Connect(function()
         if moved then return end
         toggled = not toggled
+        -- Fundo usa cor do tema atual (CyanD = variante escura do acento)
         Anim.T(fb, { BackgroundColor3 = toggled and TH.CyanD or TH.SurfaceB }, TH.Fast)
         Anim.T(fb, { Size = UDim2.fromOffset(S - 4, S - 4) }, TH.Fast)
         task.delay(0.10, function()
@@ -1212,6 +1274,219 @@ local function BuildTabSystem(body,tabScroll,z)
 end
 
 -- ═══════════════════════════════════════════════════════════════
+--  CONFIG PANEL
+--  Painel flutuante de configurações: tema, transparência, tamanho
+-- ═══════════════════════════════════════════════════════════════
+local function BuildConfigPanel(sg, root, winRef, z)
+    local panW = 260
+    local panel = Fr(TH.SurfaceB, 0, "_CfgPanel", z + 30)
+    panel.AnchorPoint = Vector2.new(1, 0)
+    panel.Size        = UDim2.fromOffset(panW, 0)
+    panel.Position    = UDim2.new(1, -8, 0, 54)  -- relativo ao root
+    panel.Visible     = false
+    panel.ClipsDescendants = true
+    panel.Parent      = root
+    RC(panel, 10)
+    local psk = SK(panel, TH.Cyan, 1.5, 0.2)
+    RegAC(psk, "Color", "Cyan")
+
+    -- Sombra
+    Shadow(panel)
+
+    local inner = Fr(TH.Bg, 1, "_CfgIn", z + 31)
+    inner.Size = UDim2.new(1, 0, 0, 0)
+    inner.AutomaticSize = Enum.AutomaticSize.Y
+    inner.Parent = panel
+    PD(inner, 12, 14, 14, 14); LV(inner, 10)
+
+    -- ── Header ──
+    local hdrRow = Fr(TH.Bg, 1, "_CH", z + 32)
+    hdrRow.Size = UDim2.new(1, 0, 0, 20)
+    hdrRow.Parent = inner
+    LH(hdrRow, 6, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+    local cfgIc = IL(TH.Cyan, z + 33); cfgIc.Size = UDim2.fromOffset(14, 14)
+    cfgIc.Parent = hdrRow; Icons.Apply("settings", cfgIc)
+    RegAC(cfgIc, "ImageColor3", "Cyan")
+    local cfgTitle = Lb("Configurações", TH.T1, SA.FS, TH.FB, Enum.TextXAlignment.Left, z + 33)
+    cfgTitle.Size = UDim2.new(1, -24, 1, 0); cfgTitle.Parent = hdrRow
+
+    -- ── Divider ──
+    Fr(TH.Border, 0, "_Dv1", z + 32).Size = UDim2.new(1, 0, 0, 1)
+    local dv1 = Fr(TH.Border, 0, "_Dv1", z + 32); dv1.Size = UDim2.new(1, 0, 0, 1); dv1.Parent = inner
+
+    -- ── SEÇÃO: TEMAS ──
+    local themeLbl = Lb("▸  Tema", TH.T2, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
+    themeLbl.Size = UDim2.new(1, 0, 0, 16); themeLbl.Parent = inner
+
+    -- Grade de swatches: 4 por linha
+    local PALETTE_ORDER = {"Cyan","Blue","Purple","Green","Red","Pink","Gold","White"}
+    local swW = 28; local swGap = 6
+    local grainRow1 = Fr(TH.Bg, 1, "_SwR1", z + 32)
+    grainRow1.Size = UDim2.new(1, 0, 0, swW)
+    grainRow1.Parent = inner
+    LH(grainRow1, swGap, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+    local grainRow2 = Fr(TH.Bg, 1, "_SwR2", z + 32)
+    grainRow2.Size = UDim2.new(1, 0, 0, swW)
+    grainRow2.Parent = inner
+    LH(grainRow2, swGap, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+
+    for idx, palName in ipairs(PALETTE_ORDER) do
+        local pal = PALETTES[palName]
+        if not pal then continue end
+        local parentRow = (idx <= 4) and grainRow1 or grainRow2
+        local sw = Fr(pal.Swatch, 0, "SW_"..palName, z + 33)
+        sw.Size = UDim2.fromOffset(swW, swW)
+        sw.Parent = parentRow; RC(sw, swW / 2)
+
+        -- Tooltip: nome do tema abaixo do swatch
+        local swHit = TB(TH.Bg, 1, z + 34); swHit.Size = UDim2.fromScale(1, 1)
+        swHit.ClipsDescendants = false; swHit.Parent = sw
+        local tipLbl = Lb(pal.Label or palName, TH.T2, SA.FS - 3, TH.FR, Enum.TextXAlignment.Center, z + 35)
+        tipLbl.Size = UDim2.new(1, 0, 0, 10); tipLbl.AnchorPoint = Vector2.new(0.5, 0)
+        tipLbl.Position = UDim2.new(0.5, 0, 1, 2); tipLbl.Visible = false; tipLbl.Parent = sw
+        tipLbl.TextColor3 = pal.Swatch
+
+        -- Anel de seleção
+        local ring2 = Fr(Color3.new(1,1,1), 1, "_Rng", z + 33)
+        ring2.AnchorPoint = Vector2.new(0.5, 0.5); ring2.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ring2.Size = UDim2.fromOffset(swW + 4, swW + 4); ring2.Parent = sw; RC(ring2, (swW + 4) / 2)
+
+        -- Marca de seleção atual
+        local function UpdateRing()
+            local isActive = (_currentPalName == palName)
+            ring2.BackgroundTransparency = isActive and 0.3 or 1
+        end
+        UpdateRing()
+        RegACFn(function(_pal) UpdateRing() end)
+
+        swHit.MouseEnter:Connect(function()
+            Anim.T(sw, {Size = UDim2.fromOffset(swW + 4, swW + 4)}, TH.Fast)
+            tipLbl.Visible = true
+        end)
+        swHit.MouseLeave:Connect(function()
+            Anim.T(sw, {Size = UDim2.fromOffset(swW, swW)}, TH.Fast)
+            tipLbl.Visible = false
+        end)
+        swHit.MouseButton1Click:Connect(function()
+            ApplyAccent(palName)
+        end)
+    end
+
+    -- ── Divider ──
+    local dv2 = Fr(TH.Border, 0, "_Dv2", z + 32); dv2.Size = UDim2.new(1, 0, 0, 1); dv2.Parent = inner
+
+    -- ── SEÇÃO: TRANSPARÊNCIA ──
+    local transpLbl = Lb("▸  Transparência da janela", TH.T2, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
+    transpLbl.Size = UDim2.new(1, 0, 0, 16); transpLbl.Parent = inner
+
+    local transpVal = 0  -- 0..80
+    -- Mini-slider inline
+    local slW = panW - 28; local SLTRH = 4
+    local slWrap = Fr(TH.Surface, 0, "_SlWr", z + 32)
+    slWrap.Size = UDim2.new(1, 0, 0, 28); slWrap.Parent = inner; RC(slWrap, 6); SK(slWrap, TH.Border, 1, 0)
+
+    local slValLbl = Lb("0%", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Right, z + 33)
+    slValLbl.AnchorPoint = Vector2.new(1, 0.5); slValLbl.Position = UDim2.new(1, -10, 0.5, 0)
+    slValLbl.Size = UDim2.fromOffset(36, 20); slValLbl.Parent = slWrap
+    RegAC(slValLbl, "TextColor3", "TAcc")
+
+    local slTrack = Fr(TH.Border, 0, "_SlTr", z + 33)
+    slTrack.Position = UDim2.new(0, 10, 0.5, -SLTRH/2)
+    slTrack.Size = UDim2.new(1, -60, 0, SLTRH); slTrack.Parent = slWrap; RC(slTrack, SLTRH/2)
+    local slFill = Fr(TH.Cyan, 0, "_SlF", z + 34); slFill.Size = UDim2.new(0, 0, 1, 0); slFill.Parent = slTrack; RC(slFill, SLTRH/2)
+    RegAC(slFill, "BackgroundColor3", "Cyan")
+    local slThumb = Fr(TH.Cyan, 0, "_SlTh", z + 35)
+    slThumb.AnchorPoint = Vector2.new(0.5, 0.5); slThumb.Position = UDim2.new(0, 0, 0.5, 0)
+    slThumb.Size = UDim2.fromOffset(10, 10); slThumb.Parent = slTrack; RC(slThumb, 5)
+    RegAC(slThumb, "BackgroundColor3", "Cyan")
+
+    local function SetTransp(v)
+        transpVal = math.clamp(math.round(v), 0, 80)
+        local pct = transpVal / 80
+        Anim.T(slFill, {Size = UDim2.new(pct, 0, 1, 0)}, TH.Fast)
+        Anim.T(slThumb, {Position = UDim2.new(pct, 0, 0.5, 0)}, TH.Fast)
+        slValLbl.Text = transpVal .. "%"
+        if root and root.Parent then
+            local tr = transpVal / 100
+            Anim.T(root, {BackgroundTransparency = tr}, TH.Fast)
+        end
+    end
+
+    local slDrag = false
+    slTrack.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then slDrag = true end
+    end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then slDrag = false end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if not slDrag then return end
+        if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+            local rx = math.clamp((i.Position.X - slTrack.AbsolutePosition.X) / slTrack.AbsoluteSize.X, 0, 1)
+            SetTransp(rx * 80)
+        end
+    end)
+
+    -- ── Divider ──
+    local dv3 = Fr(TH.Border, 0, "_Dv3", z + 32); dv3.Size = UDim2.new(1, 0, 0, 1); dv3.Parent = inner
+
+    -- ── SEÇÃO: TAMANHO ──
+    local sizeLbl = Lb("▸  Tamanho da janela", TH.T2, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
+    sizeLbl.Size = UDim2.new(1, 0, 0, 16); sizeLbl.Parent = inner
+
+    local SIZE_OPTS = {
+        {label="Pequeno",  w=380, h=240},
+        {label="Normal",   w=500, h=310},
+        {label="Grande",   w=620, h=400},
+        {label="Enorme",   w=720, h=480},
+    }
+    local sizeRow = Fr(TH.Bg, 1, "_SzR", z + 32)
+    sizeRow.Size = UDim2.new(1, 0, 0, 28); sizeRow.Parent = inner
+    LH(sizeRow, 5, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+
+    for _, opt in ipairs(SIZE_OPTS) do
+        local btn = TB(TH.Surface, 0, z + 33)
+        btn.Size = UDim2.fromOffset(54, 24); btn.Parent = sizeRow; RC(btn, 5)
+        local bsk = SK(btn, TH.Border, 1, 0)
+        local bLbl = Lb(opt.label, TH.T2, SA.FS - 2, TH.FR, Enum.TextXAlignment.Center, z + 34)
+        bLbl.Size = UDim2.fromScale(1, 1); bLbl.Parent = btn
+        btn.MouseEnter:Connect(function() Anim.T(btn, {BackgroundColor3 = TH.SurfaceB}, TH.Fast) end)
+        btn.MouseLeave:Connect(function() Anim.T(btn, {BackgroundColor3 = TH.Surface}, TH.Fast) end)
+        btn.MouseButton1Click:Connect(function()
+            winRef.W = opt.w; winRef.H = opt.h
+            if root and root.Parent then
+                Anim.T(root, {Size = UDim2.fromOffset(opt.w, opt.h)}, TH.Med)
+            end
+            Anim.T(bsk, {Color = TH.Cyan}, TH.Fast)
+            bLbl.TextColor3 = TH.TAcc
+            task.delay(0.6, function()
+                if bsk and bsk.Parent then Anim.T(bsk, {Color = TH.Border}, TH.Med) end
+                if bLbl and bLbl.Parent then bLbl.TextColor3 = TH.T2 end
+            end)
+        end)
+    end
+
+    -- ── Anima abertura/fechamento ──
+    local panOpen = false
+    local function TogglePanel()
+        panOpen = not panOpen
+        if panOpen then
+            panel.Visible = true
+            -- calcula altura alvo
+            task.defer(function()
+                local targetH = inner.AbsoluteSize.Y + 2
+                Anim.T(panel, {Size = UDim2.fromOffset(panW, targetH)}, TH.Elastic)
+            end)
+        else
+            Anim.T(panel, {Size = UDim2.fromOffset(panW, 0)}, TH.Fast)
+            task.delay(0.15, function() if panel and panel.Parent then panel.Visible = false end end)
+        end
+    end
+
+    return panel, TogglePanel
+end
+
+-- ═══════════════════════════════════════════════════════════════
 --  WINDOW
 -- ═══════════════════════════════════════════════════════════════
 local function BuildWindow(opts,sg)
@@ -1258,7 +1533,7 @@ local function BuildWindow(opts,sg)
     titleLbl.Size=UDim2.new(1,-90,1,0); titleLbl.Parent=tbRow
     local ctrlRow=Fr(TH.Bg,1,"_Ctrl",z+3)
     ctrlRow.AnchorPoint=Vector2.new(1,0.5); ctrlRow.Position=UDim2.new(1,-10,0.5,0)
-    ctrlRow.Size=UDim2.fromOffset(58,TBH); ctrlRow.Parent=titleBar
+    ctrlRow.Size=UDim2.fromOffset(82,TBH); ctrlRow.Parent=titleBar
     LH(ctrlRow,5,Enum.HorizontalAlignment.Right,Enum.VerticalAlignment.Center)
     local function CtrlBtn(iconKey,hoverCol)
         local cb=IB(TH.T3,z+4); cb.Size=UDim2.fromOffset(16,16); cb.BackgroundColor3=TH.Surface; cb.Parent=ctrlRow
@@ -1267,7 +1542,12 @@ local function BuildWindow(opts,sg)
         cb.MouseLeave:Connect(function() Anim.T(cb,{BackgroundColor3=TH.Surface,ImageColor3=TH.T3},TH.Fast) end)
         return cb
     end
-    local minBtn=CtrlBtn("minus",TH.Warn); local closeBtn=CtrlBtn("x",TH.Err)
+    local winRef = {W=wW, H=wH}
+    local cfgBtn=CtrlBtn("settings",TH.CyanS); local minBtn=CtrlBtn("minus",TH.Warn); local closeBtn=CtrlBtn("x",TH.Err)
+    RegAC(cfgBtn,"BackgroundColor3","CyanS")  -- o botão de config pulsa com a cor do tema ao hover
+    -- Config panel
+    local _cfgPanel, _toggleCfg = BuildConfigPanel(sg, root, winRef, z)
+    cfgBtn.MouseButton1Click:Connect(function() _toggleCfg() end)
     -- Tab band
     local TAB_H=46
     local tabBand=Fr(TH.BgAlt,0,"_TabBand",z+1)
@@ -1297,13 +1577,14 @@ local function BuildWindow(opts,sg)
     local minimized=false
     minBtn.MouseButton1Click:Connect(function()
         minimized=not minimized
+        if _cfgPanel and _cfgPanel.Visible then _toggleCfg() end
         if minimized then
             -- Esconde a mascara de cantos inferiores do titleBar → cantos arredondam
             tbm.Visible=false
             root.ClipsDescendants=true
-            Anim.T(root,{Size=UDim2.fromOffset(wW,TBH)},TH.Med)
+            Anim.T(root,{Size=UDim2.fromOffset(winRef.W,TBH)},TH.Med)
         else
-            Anim.T(root,{Size=UDim2.fromOffset(wW,wH)},TH.Med)
+            Anim.T(root,{Size=UDim2.fromOffset(winRef.W,winRef.H)},TH.Med)
             task.delay(0.24,function()
                 root.ClipsDescendants=false
                 tbm.Visible=true  -- restaura mascara para a juncao reta com tabBand
@@ -1312,14 +1593,15 @@ local function BuildWindow(opts,sg)
     end)
     closeBtn.MouseButton1Click:Connect(function()
         CloseDD()
+        if _cfgPanel and _cfgPanel.Visible then _toggleCfg() end
         minimized = false
         tbm.Visible = false
         root.ClipsDescendants = true
-        Anim.T(root,{Size=UDim2.fromOffset(wW,0),BackgroundTransparency=1},TH.Med)
+        Anim.T(root,{Size=UDim2.fromOffset(winRef.W,0),BackgroundTransparency=1},TH.Med)
         task.delay(0.28,function() root.Visible=false end)
     end)
     -- Open animation
-    Anim.T(root,{Size=UDim2.fromOffset(wW,wH),BackgroundTransparency=0},TH.Elastic)
+    Anim.T(root,{Size=UDim2.fromOffset(winRef.W,winRef.H),BackgroundTransparency=0},TH.Elastic)
     local wAPI={}
     function wAPI:CreateTab(o) return tabSys:AddTab(o) end
     function wAPI:Notify(o)    Notif.Send(o) end
@@ -1328,7 +1610,7 @@ local function BuildWindow(opts,sg)
         tbm.Visible = false
         root.ClipsDescendants = true
         root.Visible = true
-        Anim.T(root,{Size=UDim2.fromOffset(wW,wH),BackgroundTransparency=0},TH.Elastic)
+        Anim.T(root,{Size=UDim2.fromOffset(winRef.W,winRef.H),BackgroundTransparency=0},TH.Elastic)
         task.delay(0.50, function()
             root.ClipsDescendants = false
             tbm.Visible = true
@@ -1336,9 +1618,10 @@ local function BuildWindow(opts,sg)
     end
     function wAPI:Hide()
         CloseDD()
+        if _cfgPanel and _cfgPanel.Visible then _toggleCfg() end
         tbm.Visible = false
         root.ClipsDescendants = true
-        Anim.T(root,{Size=UDim2.fromOffset(wW,0),BackgroundTransparency=1},TH.Med)
+        Anim.T(root,{Size=UDim2.fromOffset(winRef.W,0),BackgroundTransparency=1},TH.Med)
         task.delay(0.28,function() root.Visible=false end)
     end
     return wAPI,root
