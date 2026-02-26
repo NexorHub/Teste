@@ -278,8 +278,7 @@ function BastardXHub:MakeNotify(NotifyConfig)
         local Top = Instance.new("Frame");
         local TextLabel = Instance.new("TextLabel");
         local UICorner1 = Instance.new("UICorner");
-        local TextLabel1 = Instance.new("TextLabel");
-        local Close = Instance.new("TextButton");
+            local Close = Instance.new("TextButton");
         local ImageLabel = Instance.new("ImageLabel");
         local TextLabel2 = Instance.new("TextLabel");
 
@@ -437,7 +436,6 @@ end
 function BastardXHub:Window(GuiConfig)
     GuiConfig              = GuiConfig or {}
     GuiConfig.Title        = GuiConfig.Title or "Bastard X Hub"
-    GuiConfig.Footer       = GuiConfig.Footer or ""
     GuiConfig.Color        = GuiConfig.Color or Color3.fromRGB(255, 105, 180)
     GuiConfig["Tab Width"] = GuiConfig["Tab Width"] or 120
     GuiConfig.Version      = GuiConfig.Version or 1
@@ -455,7 +453,6 @@ function BastardXHub:Window(GuiConfig)
     local Top = Instance.new("Frame");
     local TextLabel = Instance.new("TextLabel");
     local UICorner1 = Instance.new("UICorner");
-    local TextLabel1 = Instance.new("TextLabel");
     local Close = Instance.new("TextButton");
     local ImageLabel1 = Instance.new("ImageLabel");
     local Min = Instance.new("TextButton");
@@ -563,19 +560,6 @@ function BastardXHub:Window(GuiConfig)
 
     UICorner1.Parent = Top
 
-    TextLabel1.Font = Enum.Font.GothamBold
-    TextLabel1.Text = GuiConfig.Footer
-    TextLabel1.TextColor3 = GuiConfig.Color
-    TextLabel1.TextSize = 14
-    TextLabel1.TextXAlignment = Enum.TextXAlignment.Left
-    TextLabel1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    TextLabel1.BackgroundTransparency = 0.9990000128746033
-    TextLabel1.BorderColor3 = Color3.fromRGB(0, 0, 0)
-    TextLabel1.BorderSizePixel = 0
-    TextLabel1.Size = UDim2.new(1, -(TextLabel.TextBounds.X + 104), 1, 0)
-    TextLabel1.Position = UDim2.new(0, TextLabel.TextBounds.X + 15, 0, 0)
-    TextLabel1.Visible = (GuiConfig.Footer ~= nil and GuiConfig.Footer ~= "")
-    TextLabel1.Parent = Top
 
     Close.Font = Enum.Font.SourceSans
     Close.Text = ""
@@ -862,7 +846,7 @@ function BastardXHub:Window(GuiConfig)
         end
     end)
 
-    DropShadowHolder.Size = UDim2.new(0, 115 + TextLabel.TextBounds.X + 1 + TextLabel1.TextBounds.X, 0, 350)
+    DropShadowHolder.Size = UDim2.new(0, 115 + TextLabel.TextBounds.X, 0, 350)
     MakeDraggable(Top, DropShadowHolder)
 
     local MoreBlur = Instance.new("Frame");
@@ -2681,7 +2665,7 @@ function BastardXHub:FloatBtn(FloatConfig)
     ring.Size                   = UDim2.fromOffset(S + 14, S + 14)
     ring.ZIndex                 = 298
     ring.Parent                 = sg
-    -- Círculo perfeito no ring
+    -- Canto arredondado do ring: valor relativo para acompanhar o pulso
     local ringCorner = Instance.new("UICorner")
     ringCorner.CornerRadius = UDim.new(0, 10)
     ringCorner.Parent = ring
