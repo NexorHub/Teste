@@ -574,6 +574,7 @@ function BastardXHub:Window(GuiConfig)
     TextLabel1.BorderSizePixel = 0
     TextLabel1.Size = UDim2.new(1, -(TextLabel.TextBounds.X + 104), 1, 0)
     TextLabel1.Position = UDim2.new(0, TextLabel.TextBounds.X + 15, 0, 0)
+    TextLabel1.Visible = (GuiConfig.Footer ~= nil and GuiConfig.Footer ~= "")
     TextLabel1.Parent = Top
 
     Close.Font = Enum.Font.SourceSans
@@ -2682,7 +2683,7 @@ function BastardXHub:FloatBtn(FloatConfig)
     ring.Parent                 = sg
     -- Círculo perfeito no ring
     local ringCorner = Instance.new("UICorner")
-    ringCorner.CornerRadius = UDim.new(0, 999)
+    ringCorner.CornerRadius = UDim.new(0, 10)
     ringCorner.Parent = ring
 
     -- ── Botão principal — ImageButton que é também o ícone (padrão Nexus)
