@@ -504,15 +504,14 @@ function BastardXHub:Window(GuiConfig)
     DropShadow.Name = "DropShadow"
     DropShadow.Parent = DropShadowHolder
 
-    -- Theme presets
-    local ThemePresets = {
+    -- Temas padrão
+    local ThemeColors = {
         darker   = Color3.fromRGB(12, 12, 12),
         dark     = Color3.fromRGB(20, 20, 20),
         midnight = Color3.fromRGB(8,  8,  18),
         ocean    = Color3.fromRGB(8,  18, 28),
     }
-    GuiConfig.ThemePreset = GuiConfig.ThemePreset or "darker"
-    local _preset = ThemePresets[GuiConfig.ThemePreset] or ThemePresets.darker
+    local _themeColor = ThemeColors[GuiConfig.ThemePreset] or ThemeColors.darker
 
     if GuiConfig.Theme then
         Main:Destroy()
@@ -522,7 +521,7 @@ function BastardXHub:Window(GuiConfig)
         Main.BackgroundTransparency = 1
         Main.ImageTransparency = GuiConfig.ThemeTransparency or 0.15
     else
-        Main.BackgroundColor3 = _preset
+        Main.BackgroundColor3 = _themeColor
         Main.BackgroundTransparency = 0
     end
 
