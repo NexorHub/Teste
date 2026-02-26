@@ -167,6 +167,60 @@ local PALETTES = {
         Label = "Branco",
         Swatch = Color3.fromHex("DDDDDD"),
     },
+    Orange = {
+        Cyan  = Color3.fromHex("FF7700"),
+        CyanD = Color3.fromHex("CC5500"),
+        CyanS = Color3.fromHex("EE6600"),
+        TAcc  = Color3.fromHex("FF7700"),
+        Info  = Color3.fromHex("FFAA44"),
+        Label = "Laranja",
+        Swatch = Color3.fromHex("FF7700"),
+    },
+    Teal = {
+        Cyan  = Color3.fromHex("00DDBB"),
+        CyanD = Color3.fromHex("009988"),
+        CyanS = Color3.fromHex("00BBAA"),
+        TAcc  = Color3.fromHex("00DDBB"),
+        Info  = Color3.fromHex("44FFEE"),
+        Label = "Teal",
+        Swatch = Color3.fromHex("00DDBB"),
+    },
+    Rose = {
+        Cyan  = Color3.fromHex("FF2255"),
+        CyanD = Color3.fromHex("CC0033"),
+        CyanS = Color3.fromHex("EE1144"),
+        TAcc  = Color3.fromHex("FF2255"),
+        Info  = Color3.fromHex("FF6688"),
+        Label = "Rose",
+        Swatch = Color3.fromHex("FF2255"),
+    },
+    Lime = {
+        Cyan  = Color3.fromHex("AAFF00"),
+        CyanD = Color3.fromHex("77CC00"),
+        CyanS = Color3.fromHex("88EE00"),
+        TAcc  = Color3.fromHex("AAFF00"),
+        Info  = Color3.fromHex("CCFF55"),
+        Label = "Lime",
+        Swatch = Color3.fromHex("AAFF00"),
+    },
+    Ice = {
+        Cyan  = Color3.fromHex("88DDFF"),
+        CyanD = Color3.fromHex("55AADD"),
+        CyanS = Color3.fromHex("77CCEE"),
+        TAcc  = Color3.fromHex("88DDFF"),
+        Info  = Color3.fromHex("AAEEFF"),
+        Label = "Gelo",
+        Swatch = Color3.fromHex("88DDFF"),
+    },
+    Coral = {
+        Cyan  = Color3.fromHex("FF6644"),
+        CyanD = Color3.fromHex("CC3322"),
+        CyanS = Color3.fromHex("EE5533"),
+        TAcc  = Color3.fromHex("FF6644"),
+        Info  = Color3.fromHex("FF9977"),
+        Label = "Coral",
+        Swatch = Color3.fromHex("FF6644"),
+    },
 }
 
 -- ── Registro global de elementos com cor de acento ──────────────
@@ -1281,7 +1335,7 @@ end
 local function BuildConfigPanel(sg, root, winRef, z)
     local panW = 270
     -- Painel vive no ScreenGui para nunca ser cortado pelo ClipsDescendants do root
-    local panel = Fr(TH.SurfaceB, 0, "_CfgPanel", z + 30)
+    local panel = Fr(TH.Bg, 0, "_CfgPanel", z + 30)
     panel.AnchorPoint = Vector2.new(0, 0)
     panel.Size        = UDim2.fromOffset(panW, 0)
     panel.Position    = UDim2.fromOffset(0, 0)   -- reposicionado dinamicamente ao abrir
@@ -1313,30 +1367,42 @@ local function BuildConfigPanel(sg, root, winRef, z)
     cfgTitle.Size = UDim2.new(1, -24, 1, 0); cfgTitle.Parent = hdrRow
 
     -- ── Divider ──
-    Fr(TH.Border, 0, "_Dv1", z + 32).Size = UDim2.new(1, 0, 0, 1)
     local dv1 = Fr(TH.Border, 0, "_Dv1", z + 32); dv1.Size = UDim2.new(1, 0, 0, 1); dv1.Parent = inner
 
     -- ── SEÇÃO: TEMAS ──
-    local themeLbl = Lb("  Tema de Cores", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
-    themeLbl.Size = UDim2.new(1, 0, 0, 16); themeLbl.Parent = inner
+    local themeRow = Fr(TH.Bg, 1, "_ThHdr", z + 32)
+    themeRow.Size = UDim2.new(1, 0, 0, 18); themeRow.Parent = inner
+    LH(themeRow, 6, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+    local themeIc = IL(TH.TAcc, z + 33); themeIc.Size = UDim2.fromOffset(13, 13)
+    themeIc.Parent = themeRow; Icons.Apply("palette", themeIc)
+    RegAC(themeIc, "ImageColor3", "TAcc")
+    local themeLbl = Lb("Tema de Cores", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 33)
+    themeLbl.Size = UDim2.new(1, -22, 1, 0); themeLbl.Parent = themeRow
     RegAC(themeLbl, "TextColor3", "TAcc")
 
-    -- Grade de swatches: 4 por linha
-    local PALETTE_ORDER = {"Cyan","Blue","Purple","Green","Red","Pink","Gold","White"}
-    local swW = 28; local swGap = 6
-    local grainRow1 = Fr(TH.Bg, 1, "_SwR1", z + 32)
-    grainRow1.Size = UDim2.new(1, 0, 0, swW)
-    grainRow1.Parent = inner
-    LH(grainRow1, swGap, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
-    local grainRow2 = Fr(TH.Bg, 1, "_SwR2", z + 32)
-    grainRow2.Size = UDim2.new(1, 0, 0, swW)
-    grainRow2.Parent = inner
-    LH(grainRow2, swGap, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+    -- Grade de swatches: 5 por linha (3 linhas para 15 temas)
+    local PALETTE_ORDER = {
+        "Cyan","Blue","Purple","Green","Red",
+        "Pink","Gold","White","Orange","Teal",
+        "Rose","Lime","Ice","Coral",
+    }
+    local swW = 26; local swGap = 6
+    -- Cria linhas dinamicamente (5 por linha)
+    local swRows = {}
+    local SWATCH_PER_ROW = 5
+    for i = 1, math.ceil(#PALETTE_ORDER / SWATCH_PER_ROW) do
+        local row = Fr(TH.Bg, 1, "_SwR"..i, z + 32)
+        row.Size = UDim2.new(1, 0, 0, swW)
+        row.Parent = inner
+        LH(row, swGap, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+        swRows[i] = row
+    end
 
     for idx, palName in ipairs(PALETTE_ORDER) do
         local pal = PALETTES[palName]
         if not pal then continue end
-        local parentRow = (idx <= 4) and grainRow1 or grainRow2
+        local rowIdx = math.ceil(idx / SWATCH_PER_ROW)
+        local parentRow = swRows[rowIdx]
         local sw = Fr(pal.Swatch, 0, "SW_"..palName, z + 33)
         sw.Size = UDim2.fromOffset(swW, swW)
         sw.Parent = parentRow; RC(sw, swW / 2)
@@ -1379,8 +1445,14 @@ local function BuildConfigPanel(sg, root, winRef, z)
     local dv2 = Fr(TH.Border, 0, "_Dv2", z + 32); dv2.Size = UDim2.new(1, 0, 0, 1); dv2.Parent = inner
 
     -- ── SEÇÃO: TRANSPARÊNCIA ──
-    local transpLbl = Lb("  Transparencia da janela", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
-    transpLbl.Size = UDim2.new(1, 0, 0, 16); transpLbl.Parent = inner
+    local transpRow = Fr(TH.Bg, 1, "_TrHdr", z + 32)
+    transpRow.Size = UDim2.new(1, 0, 0, 18); transpRow.Parent = inner
+    LH(transpRow, 6, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+    local transpIc = IL(TH.TAcc, z + 33); transpIc.Size = UDim2.fromOffset(13, 13)
+    transpIc.Parent = transpRow; Icons.Apply("eye", transpIc)
+    RegAC(transpIc, "ImageColor3", "TAcc")
+    local transpLbl = Lb("Transparencia", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 33)
+    transpLbl.Size = UDim2.new(1, -22, 1, 0); transpLbl.Parent = transpRow
     RegAC(transpLbl, "TextColor3", "TAcc")
 
     local transpVal = 0  -- 0..80
@@ -1442,8 +1514,14 @@ local function BuildConfigPanel(sg, root, winRef, z)
     local dv3 = Fr(TH.Border, 0, "_Dv3", z + 32); dv3.Size = UDim2.new(1, 0, 0, 1); dv3.Parent = inner
 
     -- ── SEÇÃO: TAMANHO ──
-    local sizeLbl = Lb("  Tamanho da janela", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
-    sizeLbl.Size = UDim2.new(1, 0, 0, 16); sizeLbl.Parent = inner
+    local sizeHdrRow = Fr(TH.Bg, 1, "_SzHdr", z + 32)
+    sizeHdrRow.Size = UDim2.new(1, 0, 0, 18); sizeHdrRow.Parent = inner
+    LH(sizeHdrRow, 6, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+    local sizeIc = IL(TH.TAcc, z + 33); sizeIc.Size = UDim2.fromOffset(13, 13)
+    sizeIc.Parent = sizeHdrRow; Icons.Apply("maximize", sizeIc)
+    RegAC(sizeIc, "ImageColor3", "TAcc")
+    local sizeLbl = Lb("Tamanho da janela", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 33)
+    sizeLbl.Size = UDim2.new(1, -22, 1, 0); sizeLbl.Parent = sizeHdrRow
     RegAC(sizeLbl, "TextColor3", "TAcc")
 
     local SIZE_OPTS = {
