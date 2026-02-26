@@ -1,18 +1,19 @@
 --[[
 ╔══════════════════════════════════════════════════════════════╗
-║  NexusUI  ·  v3.2.0  ·  Professional Roblox GUI Library     ║
-║  Temas    : 8 paletas (Cyan/Blue/Purple/Green/Red/Pink/      ║
-║             Gold/White) com troca por swatches               ║
-║  FloatBtn : PNG sem tint · fundo troca com tema (sem efeito  ║
-║             na imagem)                                       ║
-║  Config   : Painel ⚙ ao lado dos botões – tema, transp.,    ║
-║             tamanho da janela                                ║
+║  NexusUI  ·  v3.3.0  ·  Professional Roblox GUI Library     ║
+║  Temas    : 6 paletas (Ciano/Roxo/Verde/Vermelho/Rosa/Ouro)  ║
+║  Intro    : Tela de carregamento animada com barra progresso ║
+║  Config   : Painel com grade 3x2, transp. e tamanho          ║
 ╚══════════════════════════════════════════════════════════════╝
 
   QUICK START:
     local NexusUI = loadstring(game:HttpGet("YOUR_URL"))()
     NexusUI:SetToggleIcon("rbxassetid://104112878732002")
-    local Win = NexusUI:CreateWindow({ Title = "Hub", Icon = "bolt" })
+    local Win = NexusUI:CreateWindow({
+        Title = "Hub",
+        Icon  = "bolt",
+        Intro = { Title = "Meu Script", Subtitle = "v1.0 • by dev", Duration = 3 }
+    })
     local Tab = Win:CreateTab({ Name = "Farm", Icon = "axe" })
     local Sec = Tab:CreateSection("Auto Farm")
     Sec:CreateButton({ Name = "Start", Callback = function() end })
@@ -104,15 +105,6 @@ local PALETTES = {
         Label = "Ciano",
         Swatch = Color3.fromHex("00FFFF"),
     },
-    Red = {
-        Cyan  = Color3.fromHex("FF3333"),
-        CyanD = Color3.fromHex("BB1111"),
-        CyanS = Color3.fromHex("DD2222"),
-        TAcc  = Color3.fromHex("FF3333"),
-        Info  = Color3.fromHex("FF6655"),
-        Label = "Vermelho",
-        Swatch = Color3.fromHex("FF3333"),
-    },
     Purple = {
         Cyan  = Color3.fromHex("9B59FF"),
         CyanD = Color3.fromHex("6633CC"),
@@ -131,14 +123,14 @@ local PALETTES = {
         Label = "Verde",
         Swatch = Color3.fromHex("00FF88"),
     },
-    Gold = {
-        Cyan  = Color3.fromHex("FFD700"),
-        CyanD = Color3.fromHex("CC9900"),
-        CyanS = Color3.fromHex("EEBB00"),
-        TAcc  = Color3.fromHex("FFD700"),
-        Info  = Color3.fromHex("FFEE66"),
-        Label = "Dourado",
-        Swatch = Color3.fromHex("FFD700"),
+    Red = {
+        Cyan  = Color3.fromHex("FF3333"),
+        CyanD = Color3.fromHex("BB1111"),
+        CyanS = Color3.fromHex("DD2222"),
+        TAcc  = Color3.fromHex("FF3333"),
+        Info  = Color3.fromHex("FF6655"),
+        Label = "Vermelho",
+        Swatch = Color3.fromHex("FF3333"),
     },
     Pink = {
         Cyan  = Color3.fromHex("FF44AA"),
@@ -149,77 +141,14 @@ local PALETTES = {
         Label = "Rosa",
         Swatch = Color3.fromHex("FF44AA"),
     },
-    Blue = {
-        Cyan  = Color3.fromHex("4488FF"),
-        CyanD = Color3.fromHex("2255CC"),
-        CyanS = Color3.fromHex("3366EE"),
-        TAcc  = Color3.fromHex("4488FF"),
-        Info  = Color3.fromHex("88BBFF"),
-        Label = "Azul",
-        Swatch = Color3.fromHex("4488FF"),
-    },
-    White = {
-        Cyan  = Color3.fromHex("DDDDDD"),
-        CyanD = Color3.fromHex("AAAAAA"),
-        CyanS = Color3.fromHex("CCCCCC"),
-        TAcc  = Color3.fromHex("FFFFFF"),
-        Info  = Color3.fromHex("EEEEEE"),
-        Label = "Branco",
-        Swatch = Color3.fromHex("DDDDDD"),
-    },
-    Orange = {
-        Cyan  = Color3.fromHex("FF7700"),
-        CyanD = Color3.fromHex("CC5500"),
-        CyanS = Color3.fromHex("EE6600"),
-        TAcc  = Color3.fromHex("FF7700"),
-        Info  = Color3.fromHex("FFAA44"),
-        Label = "Laranja",
-        Swatch = Color3.fromHex("FF7700"),
-    },
-    Teal = {
-        Cyan  = Color3.fromHex("00DDBB"),
-        CyanD = Color3.fromHex("009988"),
-        CyanS = Color3.fromHex("00BBAA"),
-        TAcc  = Color3.fromHex("00DDBB"),
-        Info  = Color3.fromHex("44FFEE"),
-        Label = "Teal",
-        Swatch = Color3.fromHex("00DDBB"),
-    },
-    Rose = {
-        Cyan  = Color3.fromHex("FF2255"),
-        CyanD = Color3.fromHex("CC0033"),
-        CyanS = Color3.fromHex("EE1144"),
-        TAcc  = Color3.fromHex("FF2255"),
-        Info  = Color3.fromHex("FF6688"),
-        Label = "Rose",
-        Swatch = Color3.fromHex("FF2255"),
-    },
-    Lime = {
-        Cyan  = Color3.fromHex("AAFF00"),
-        CyanD = Color3.fromHex("77CC00"),
-        CyanS = Color3.fromHex("88EE00"),
-        TAcc  = Color3.fromHex("AAFF00"),
-        Info  = Color3.fromHex("CCFF55"),
-        Label = "Lime",
-        Swatch = Color3.fromHex("AAFF00"),
-    },
-    Ice = {
-        Cyan  = Color3.fromHex("88DDFF"),
-        CyanD = Color3.fromHex("55AADD"),
-        CyanS = Color3.fromHex("77CCEE"),
-        TAcc  = Color3.fromHex("88DDFF"),
-        Info  = Color3.fromHex("AAEEFF"),
-        Label = "Gelo",
-        Swatch = Color3.fromHex("88DDFF"),
-    },
-    Coral = {
-        Cyan  = Color3.fromHex("FF6644"),
-        CyanD = Color3.fromHex("CC3322"),
-        CyanS = Color3.fromHex("EE5533"),
-        TAcc  = Color3.fromHex("FF6644"),
-        Info  = Color3.fromHex("FF9977"),
-        Label = "Coral",
-        Swatch = Color3.fromHex("FF6644"),
+    Gold = {
+        Cyan  = Color3.fromHex("FFD700"),
+        CyanD = Color3.fromHex("CC9900"),
+        CyanS = Color3.fromHex("EEBB00"),
+        TAcc  = Color3.fromHex("FFD700"),
+        Info  = Color3.fromHex("FFEE66"),
+        Label = "Dourado",
+        Swatch = Color3.fromHex("FFD700"),
     },
 }
 
@@ -1346,13 +1275,12 @@ local function BuildConfigPanel(sg, root, winRef, z)
     local psk = SK(panel, TH.Cyan, 1.5, 0.2)
     RegAC(psk, "Color", "Cyan")
 
-    -- Sombra
-    Shadow(panel)
-
-    local inner = Fr(TH.Bg, 1, "_CfgIn", z + 31)
+    -- inner cobre todo o painel com fundo preto sólido
+    local inner = Fr(TH.Bg, 0, "_CfgIn", z + 31)
     inner.Size = UDim2.new(1, 0, 0, 0)
     inner.AutomaticSize = Enum.AutomaticSize.Y
     inner.Parent = panel
+    RC(inner, 10)
     PD(inner, 12, 14, 14, 14); LV(inner, 10)
 
     -- ── Header ──
@@ -1380,19 +1308,14 @@ local function BuildConfigPanel(sg, root, winRef, z)
     themeLbl.Size = UDim2.new(1, -22, 1, 0); themeLbl.Parent = themeRow
     RegAC(themeLbl, "TextColor3", "TAcc")
 
-    -- Grade de swatches: 5 por linha (3 linhas para 15 temas)
-    local PALETTE_ORDER = {
-        "Cyan","Blue","Purple","Green","Red",
-        "Pink","Gold","White","Orange","Teal",
-        "Rose","Lime","Ice","Coral",
-    }
-    local swW = 26; local swGap = 6
-    -- Cria linhas dinamicamente (5 por linha)
+    -- Grade de swatches: 3 por linha, 2 linhas (grade 3x2 para 6 temas)
+    local PALETTE_ORDER = {"Cyan","Purple","Green","Red","Pink","Gold"}
+    -- Cada célula: bolinha colorida + nome embaixo
+    local swW = 36; local swGap = 8; local SWATCH_PER_ROW = 3
     local swRows = {}
-    local SWATCH_PER_ROW = 5
-    for i = 1, math.ceil(#PALETTE_ORDER / SWATCH_PER_ROW) do
+    for i = 1, 2 do
         local row = Fr(TH.Bg, 1, "_SwR"..i, z + 32)
-        row.Size = UDim2.new(1, 0, 0, swW)
+        row.Size = UDim2.new(1, 0, 0, swW + 16)
         row.Parent = inner
         LH(row, swGap, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
         swRows[i] = row
@@ -1403,38 +1326,46 @@ local function BuildConfigPanel(sg, root, winRef, z)
         if not pal then continue end
         local rowIdx = math.ceil(idx / SWATCH_PER_ROW)
         local parentRow = swRows[rowIdx]
+
+        -- Container: bolinha + nome (empilhados verticalmente)
+        local cell = Fr(TH.Bg, 1, "Cell_"..palName, z + 32)
+        cell.Size = UDim2.fromOffset(swW, swW + 14); cell.Parent = parentRow
+        LV(cell, 2)
+
         local sw = Fr(pal.Swatch, 0, "SW_"..palName, z + 33)
         sw.Size = UDim2.fromOffset(swW, swW)
-        sw.Parent = parentRow; RC(sw, swW / 2)
+        sw.Parent = cell; RC(sw, swW / 2)
 
-        -- Tooltip: nome do tema abaixo do swatch
-        local swHit = TB(TH.Bg, 1, z + 34); swHit.Size = UDim2.fromScale(1, 1)
-        swHit.ClipsDescendants = false; swHit.Parent = sw
+        -- Nome do tema sempre visível abaixo
         local tipLbl = Lb(pal.Label or palName, TH.T2, SA.FS - 3, TH.FR, Enum.TextXAlignment.Center, z + 35)
-        tipLbl.Size = UDim2.new(1, 0, 0, 10); tipLbl.AnchorPoint = Vector2.new(0.5, 0)
-        tipLbl.Position = UDim2.new(0.5, 0, 1, 2); tipLbl.Visible = false; tipLbl.Parent = sw
+        tipLbl.Size = UDim2.fromOffset(swW, 12); tipLbl.Parent = cell
         tipLbl.TextColor3 = pal.Swatch
 
-        -- Anel de seleção
+        -- Botão invisível sobre o círculo
+        local swHit = TB(TH.Bg, 1, z + 34); swHit.Size = UDim2.fromOffset(swW, swW)
+        swHit.Position = UDim2.fromOffset(0, 0)
+        swHit.ClipsDescendants = false; swHit.Parent = cell
+
+        -- Anel de seleção (filho do sw)
         local ring2 = Fr(Color3.new(1,1,1), 1, "_Rng", z + 33)
         ring2.AnchorPoint = Vector2.new(0.5, 0.5); ring2.Position = UDim2.new(0.5, 0, 0.5, 0)
-        ring2.Size = UDim2.fromOffset(swW + 4, swW + 4); ring2.Parent = sw; RC(ring2, (swW + 4) / 2)
+        ring2.Size = UDim2.fromOffset(swW + 5, swW + 5); ring2.Parent = sw; RC(ring2, (swW + 5) / 2)
 
         -- Marca de seleção atual
         local function UpdateRing()
             local isActive = (_currentPalName == palName)
-            ring2.BackgroundTransparency = isActive and 0.3 or 1
+            ring2.BackgroundTransparency = isActive and 0.25 or 1
+            tipLbl.TextColor3 = isActive and pal.Swatch or TH.T2
+            tipLbl.Font = isActive and TH.FB or TH.FR
         end
         UpdateRing()
         RegACFn(function(_pal) UpdateRing() end)
 
         swHit.MouseEnter:Connect(function()
-            Anim.T(sw, {Size = UDim2.fromOffset(swW + 4, swW + 4)}, TH.Fast)
-            tipLbl.Visible = true
+            Anim.T(sw, {Size = UDim2.fromOffset(swW + 3, swW + 3)}, TH.Fast)
         end)
         swHit.MouseLeave:Connect(function()
             Anim.T(sw, {Size = UDim2.fromOffset(swW, swW)}, TH.Fast)
-            tipLbl.Visible = false
         end)
         swHit.MouseButton1Click:Connect(function()
             ApplyAccent(palName)
@@ -1733,6 +1664,126 @@ local function BuildWindow(opts,sg)
 end
 
 -- ═══════════════════════════════════════════════════════════════
+--  INTRO SCREEN
+--  Tela de introdução animada: título, subtítulo, barra de progresso
+--  Uso: Library:CreateWindow({ Title="Hub", Intro={ Title="MeuScript", Subtitle="v1.0 • by dev" } })
+-- ═══════════════════════════════════════════════════════════════
+local function BuildIntroScreen(sg, opts, onDone)
+    opts = opts or {}
+    local title    = opts.Title    or "NexusUI"
+    local subtitle = opts.Subtitle or "Carregando..."
+    local duration = opts.Duration or 2.8
+
+    -- Overlay escuro cobre tudo
+    local overlay = Fr(Color3.fromHex("000000"), 0, "_Intro", 9999)
+    overlay.Size     = UDim2.fromScale(1, 1)
+    overlay.Position = UDim2.fromScale(0, 0)
+    overlay.Parent   = sg
+
+    -- Card central
+    local cardW, cardH = 340, 160
+    local card = Fr(TH.Surface, 0, "_IntroCard", 10000)
+    card.AnchorPoint = Vector2.new(0.5, 0.5)
+    card.Position    = UDim2.new(0.5, 0, 0.5, 0)
+    card.Size        = UDim2.fromOffset(cardW, cardH)
+    card.Parent      = overlay
+    RC(card, 14)
+    local cardSk = SK(card, TH.Cyan, 1.5, 0.15)
+    RegAC(cardSk, "Color", "Cyan")
+
+    -- Linha de acento no topo do card
+    local topBar = Fr(TH.Cyan, 0, "_TB", 10001)
+    topBar.Size = UDim2.new(1, 0, 0, 3)
+    topBar.Parent = card; RC(topBar, 2)
+    RegAC(topBar, "BackgroundColor3", "Cyan")
+
+    -- Título principal
+    local titleLbl = Lb(title, TH.T1, 22, TH.FB, Enum.TextXAlignment.Center, 10001)
+    titleLbl.Size     = UDim2.new(1, -20, 0, 30)
+    titleLbl.Position = UDim2.fromOffset(10, 26)
+    titleLbl.Parent   = card
+
+    -- Subtítulo
+    local subLbl = Lb(subtitle, TH.T2, SA.FS - 1, TH.FR, Enum.TextXAlignment.Center, 10001)
+    subLbl.Size     = UDim2.new(1, -20, 0, 18)
+    subLbl.Position = UDim2.fromOffset(10, 60)
+    subLbl.Parent   = card
+
+    -- Barra de progresso (fundo)
+    local barBg = Fr(TH.Border, 0, "_BarBg", 10001)
+    barBg.Position = UDim2.fromOffset(20, 96)
+    barBg.Size     = UDim2.new(1, -40, 0, 5)
+    barBg.Parent   = card; RC(barBg, 3)
+
+    -- Barra de progresso (fill)
+    local barFill = Fr(TH.Cyan, 0, "_BarFill", 10002)
+    barFill.Size   = UDim2.new(0, 0, 1, 0)
+    barFill.Parent = barBg; RC(barFill, 3)
+    RegAC(barFill, "BackgroundColor3", "Cyan")
+
+    -- Texto de porcentagem
+    local pctLbl = Lb("0%", TH.TAcc, SA.FS - 2, TH.FM, Enum.TextXAlignment.Center, 10001)
+    pctLbl.Size     = UDim2.new(1, -20, 0, 16)
+    pctLbl.Position = UDim2.fromOffset(10, 108)
+    pctLbl.Parent   = card
+    RegAC(pctLbl, "TextColor3", "TAcc")
+
+    -- Animação de entrada do card
+    card.BackgroundTransparency = 1
+    titleLbl.TextTransparency   = 1
+    subLbl.TextTransparency     = 1
+    pctLbl.TextTransparency     = 1
+    TweenService:Create(card,  TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {BackgroundTransparency=0}):Play()
+    task.delay(0.1, function()
+        TweenService:Create(titleLbl, TH.Med, {TextTransparency=0}):Play()
+        TweenService:Create(subLbl,   TH.Med, {TextTransparency=0}):Play()
+        TweenService:Create(pctLbl,   TH.Med, {TextTransparency=0}):Play()
+    end)
+
+    -- Animar barra de progresso ao longo de `duration` segundos
+    local steps = 60
+    local stepTime = duration / steps
+    local stepPct  = 100 / steps
+    local cur = 0
+
+    task.spawn(function()
+        for i = 1, steps do
+            cur = math.floor(i * stepPct)
+            -- Varia velocidade: começa rápido, para em ~80%, accelera no fim
+            local eased = cur <= 80
+                and (cur / 80) * 0.8
+                or  0.8 + ((cur - 80) / 20) * 0.2
+            TweenService:Create(barFill, TweenInfo.new(stepTime * 1.1, Enum.EasingStyle.Quint),
+                {Size = UDim2.new(eased, 0, 1, 0)}):Play()
+            pctLbl.Text = cur .. "%"
+            task.wait(stepTime)
+        end
+        pctLbl.Text = "100%"
+        TweenService:Create(barFill, TH.Med, {Size = UDim2.new(1, 0, 1, 0)}):Play()
+        task.wait(0.4)
+        -- Fade out
+        TweenService:Create(overlay, TweenInfo.new(0.5, Enum.EasingStyle.Quint),
+            {BackgroundTransparency = 1}):Play()
+        TweenService:Create(card, TweenInfo.new(0.5, Enum.EasingStyle.Quint),
+            {BackgroundTransparency = 1}):Play()
+        for _, d in ipairs(card:GetDescendants()) do
+            if d:IsA("TextLabel") then
+                TweenService:Create(d, TweenInfo.new(0.35, Enum.EasingStyle.Quint),
+                    {TextTransparency = 1}):Play()
+            elseif d:IsA("Frame") and d ~= barFill then
+                TweenService:Create(d, TweenInfo.new(0.35, Enum.EasingStyle.Quint),
+                    {BackgroundTransparency = 1}):Play()
+            end
+        end
+        task.delay(0.55, function()
+            overlay:Destroy()
+            if onDone then onDone() end
+        end)
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════
 --  LIBRARY
 -- ═══════════════════════════════════════════════════════════════
 local Library={Icons=Icons}
@@ -1755,6 +1806,17 @@ function Library:GetAccent()
 end
 function Library:CreateWindow(opts)
     self:_Init()
+    -- Se opts.Intro existir, mostra tela de intro antes de revelar a janela
+    if opts and opts.Intro then
+        local introOpts = opts.Intro
+        local api, root = BuildWindow(opts, self._sg)
+        root.Visible = false
+        table.insert(self._wins, {api=api, root=root})
+        BuildIntroScreen(self._sg, introOpts, function()
+            api:Show()
+        end)
+        return api
+    end
     local api,root=BuildWindow(opts,self._sg)
     table.insert(self._wins,{api=api,root=root}); return api
 end
@@ -1772,3 +1834,4 @@ function Library:Destroy()
     self._sg=nil; self._inited=false; self._wins={}; self._float=nil
 end
 return Library
+
