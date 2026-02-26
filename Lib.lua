@@ -7,9 +7,13 @@ if not isfolder("Bastard X Hub/Config") then
     makefolder("Bastard X Hub/Config")
 end
 
-local gameName   = tostring(game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
+local _ok, _info = pcall(function()
+    return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+end)
+local gameName = _ok and tostring(_info) or "UnknownGame"
 gameName         = gameName:gsub("[^%w_ ]", "")
 gameName         = gameName:gsub("%s+", "_")
+if gameName == "" then gameName = "UnknownGame" end
 
 local ConfigFile = "Bastard X Hub/Config/Bastard_" .. gameName .. ".json"
 
@@ -277,6 +281,7 @@ function BastardXHub:MakeNotify(NotifyConfig)
         local DropShadow = Instance.new("ImageLabel");
         local Top = Instance.new("Frame");
         local TextLabel = Instance.new("TextLabel");
+        local TextLabel1 = Instance.new("TextLabel");   -- FIX: estava faltando, causando falha silenciosa
         local UICorner1 = Instance.new("UICorner");
             local Close = Instance.new("TextButton");
         local ImageLabel = Instance.new("ImageLabel");
@@ -545,6 +550,7 @@ function BastardXHub:Window(GuiConfig)
     Main.BorderSizePixel = 0
     Main.Position = UDim2.new(0.5, 0, 0.5, 0)
     Main.Size = UDim2.new(1, -47, 1, -47)
+    Main.ClipsDescendants = true   -- necessário para o minimize funcionar
     Main.Name = "Main"
     Main.Parent = DropShadow
 
@@ -729,9 +735,46 @@ function BastardXHub:Window(GuiConfig)
         end
     end
 
+    -- ── Minimize / Restore
+    local _isMinimized  = false
+    local _fullSizeRef  = nil   -- guardado após MakeDraggable definir o tamanho
+
     Min.Activated:Connect(function()
         CircleClick(Min, Mouse.X, Mouse.Y)
-        DropShadowHolder.Visible = false
+        _isMinimized = not _isMinimized
+
+        if _isMinimized then
+            -- Guarda o tamanho atual antes de minimizar
+            _fullSizeRef = DropShadowHolder.Size
+
+            -- Anima para a altura da barra de título (38 px = Top bar)
+            TweenService:Create(
+                DropShadowHolder,
+                TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+                { Size = UDim2.new(
+                    DropShadowHolder.Size.X.Scale,
+                    DropShadowHolder.Size.X.Offset,
+                    0, 38
+                )}
+            ):Play()
+
+            -- Ícone indica "restaurar" (levemente transparente)
+            TweenService:Create(ImageLabel2, TweenInfo.new(0.2),
+                { ImageTransparency = 0.6 }):Play()
+        else
+            -- Restaura tamanho anterior (ou padrão se não tiver sido definido)
+            local restoreSize = _fullSizeRef
+                or (isMobile and UDim2.new(0, 470, 0, 270) or UDim2.new(0, 640, 0, 400))
+
+            TweenService:Create(
+                DropShadowHolder,
+                TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+                { Size = restoreSize }
+            ):Play()
+
+            TweenService:Create(ImageLabel2, TweenInfo.new(0.2),
+                { ImageTransparency = 0.2 }):Play()
+        end
     end)
     Close.Activated:Connect(function()
         CircleClick(Close, Mouse.X, Mouse.Y)
@@ -860,6 +903,8 @@ function BastardXHub:Window(GuiConfig)
 
     DropShadowHolder.Size = UDim2.new(0, 115 + TextLabel.TextBounds.X, 0, 350)
     MakeDraggable(Top, DropShadowHolder)
+    -- MakeDraggable sobrescreve o tamanho internamente; guardar DEPOIS para restore correto
+    _fullSizeRef = DropShadowHolder.Size
 
     local MoreBlur = Instance.new("Frame");
     local DropShadowHolder1 = Instance.new("Frame");
@@ -1840,15 +1885,15 @@ function BastardXHub:Window(GuiConfig)
                     ToggleFunc:Set(ToggleFunc.Value)
                 end)
 
-                function ToggleFunc:Set(Value)
-                    if typeof(ToggleConfig.Callback) == "function" then
+                function ToggleFunc:Set(Value, silent)
+                    if not silent and typeof(ToggleConfig.Callback) == "function" then
                         local ok, err = pcall(function()
                             ToggleConfig.Callback(Value)
                         end)
                         if not ok then warn("Toggle Callback error:", err) end
                     end
                     ConfigData[configKey] = Value
-                    SaveConfig()
+                    if not silent then SaveConfig() end
                     if Value then
                         TweenService:Create(ToggleTitle, TweenInfo.new(0.2), { TextColor3 = GuiConfig.Color }):Play()
                         TweenService:Create(ToggleCircle, TweenInfo.new(0.2), { Position = UDim2.new(0, 15, 0, 0) })
@@ -1868,7 +1913,7 @@ function BastardXHub:Window(GuiConfig)
                     end
                 end
 
-                ToggleFunc:Set(ToggleFunc.Value)
+                ToggleFunc:Set(ToggleFunc.Value, true)   -- init silencioso: só atualiza visual
                 CountItem = CountItem + 1
                 Elements[configKey] = ToggleFunc
                 return ToggleFunc
@@ -2039,7 +2084,7 @@ function BastardXHub:Window(GuiConfig)
                     end
                     return Result
                 end
-                function SliderFunc:Set(Value)
+                function SliderFunc:Set(Value, silent)
                     Value = math.clamp(Round(Value, SliderConfig.Increment), SliderConfig.Min, SliderConfig.Max)
                     SliderFunc.Value = Value
                     TextBox.Text = tostring(Value)
@@ -2048,10 +2093,11 @@ function BastardXHub:Window(GuiConfig)
                         TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
                         { Size = UDim2.fromScale((Value - SliderConfig.Min) / (SliderConfig.Max - SliderConfig.Min), 1) }
                     ):Play()
-
-                    SliderConfig.Callback(Value)
-                    ConfigData[configKey] = Value
-                    SaveConfig()
+                    if not silent then
+                        SliderConfig.Callback(Value)
+                        ConfigData[configKey] = Value
+                        SaveConfig()
+                    end
                 end
 
                 SliderFrame.InputBegan:Connect(function(Input)
@@ -2103,7 +2149,7 @@ function BastardXHub:Window(GuiConfig)
                         SliderFunc:Set(SliderConfig.Min)
                     end
                 end)
-                SliderFunc:Set(SliderConfig.Default)
+                SliderFunc:Set(SliderConfig.Default, true)  -- init silencioso
                 CountItem = CountItem + 1
                 Elements[configKey] = SliderFunc
                 return SliderFunc
@@ -2221,15 +2267,17 @@ function BastardXHub:Window(GuiConfig)
                 InputTextBox.Size = UDim2.new(1, -10, 1, -8)
                 InputTextBox.Name = "InputTextBox"
                 InputTextBox.Parent = InputFrame
-                function InputFunc:Set(Value)
+                function InputFunc:Set(Value, silent)
                     InputTextBox.Text = Value
                     InputFunc.Value = Value
-                    InputConfig.Callback(Value)
-                    ConfigData[configKey] = Value
-                    SaveConfig()
+                    if not silent then
+                        InputConfig.Callback(Value)
+                        ConfigData[configKey] = Value
+                        SaveConfig()
+                    end
                 end
 
-                InputFunc:Set(InputFunc.Value)
+                InputFunc:Set(InputFunc.Value, true)  -- init silencioso
 
                 InputTextBox.FocusLost:Connect(function()
                     InputFunc:Set(InputTextBox.Text)
@@ -2491,15 +2539,17 @@ function BastardXHub:Window(GuiConfig)
                     end)
                 end
 
-                function DropdownFunc:Set(Value)
+                function DropdownFunc:Set(Value, silent)
                     if DropdownConfig.Multi then
                         DropdownFunc.Value = type(Value) == "table" and Value or {}
                     else
                         DropdownFunc.Value = (type(Value) == "table" and Value[1]) or Value
                     end
 
-                    ConfigData[configKey] = DropdownFunc.Value
-                    SaveConfig()
+                    if not silent then
+                        ConfigData[configKey] = DropdownFunc.Value
+                        SaveConfig()
+                    end
 
                     local texts = {}
                     for _, Drop in ScrollSelect:GetChildren() do
@@ -2529,7 +2579,7 @@ function BastardXHub:Window(GuiConfig)
                         and (DropdownConfig.Multi and "Select Options" or "Select Option")
                         or table.concat(texts, ", ")
 
-                    if DropdownConfig.Callback then
+                    if not silent and DropdownConfig.Callback then
                         if DropdownConfig.Multi then
                             DropdownConfig.Callback(DropdownFunc.Value)
                         else
@@ -2547,7 +2597,7 @@ function BastardXHub:Window(GuiConfig)
                     return self.Value
                 end
 
-                function DropdownFunc:SetValues(newList, selecting)
+                function DropdownFunc:SetValues(newList, selecting, silent)
                     newList = newList or {}
                     selecting = selecting or (DropdownConfig.Multi and {} or nil)
                     DropdownFunc:Clear()
@@ -2555,10 +2605,10 @@ function BastardXHub:Window(GuiConfig)
                         DropdownFunc:AddOption(v)
                     end
                     DropdownFunc.Options = newList
-                    DropdownFunc:Set(selecting)
+                    DropdownFunc:Set(selecting, silent)
                 end
 
-                DropdownFunc:SetValues(DropdownFunc.Options, DropdownFunc.Value)
+                DropdownFunc:SetValues(DropdownFunc.Options, DropdownFunc.Value, true)  -- init silencioso
 
                 CountItem = CountItem + 1
                 CountDropdown = CountDropdown + 1
@@ -2730,10 +2780,13 @@ function BastardXHub:Window(GuiConfig)
                 swatchStroke.Color = Color3.fromRGB(80, 80, 80); swatchStroke.Thickness = 1
                 swatchStroke.Parent = CPSwatch
 
+                -- Botão de toggle: cobre APENAS o cabeçalho (38 px), não a área expandida
                 local CPToggleBtn = Instance.new("TextButton")
                 CPToggleBtn.BackgroundTransparency = 1
-                CPToggleBtn.Size  = UDim2.new(1, 0, 1, 0)
-                CPToggleBtn.Text  = ""
+                CPToggleBtn.Size   = UDim2.new(1, 0, 0, 38)
+                CPToggleBtn.Position = UDim2.new(0, 0, 0, 0)
+                CPToggleBtn.Text   = ""
+                CPToggleBtn.ZIndex = 2
                 CPToggleBtn.Parent = CPFrame
 
                 -- Área expandida (HSV sliders)
@@ -2908,27 +2961,32 @@ function BastardXHub:Window(GuiConfig)
                 -- Toggle expandir/recolher
                 CPToggleBtn.Activated:Connect(function()
                     isOpen = not isOpen
-                    local newH = isOpen and (38 + 90) or 38
+                    local newH = isOpen and (38 + 96) or 38
                     TweenService:Create(CPFrame,
                         TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
                         { Size = UDim2.new(1, 0, 0, newH) }):Play()
-                    UpdateSizeSection()
+                    -- aguarda o tween antes de recalcular o layout da seção
+                    task.delay(0.32, function()
+                        UpdateSizeSection()
+                    end)
                 end)
 
-                function ColorPickerFunc:Set(color)
+                function ColorPickerFunc:Set(color, silent)
                     ColorPickerFunc.Value = color
                     CPSwatch.BackgroundColor3 = color
                     local hv, sv, vv = Color3.toHSV(color)
                     sliderH.set(hv * 360)
                     sliderS.set(sv * 100)
                     sliderV.set(vv * 100)
-                    ColorConfig.Callback(color)
-                    ConfigData[configKey] = {
-                        math.floor(color.R*255+0.5),
-                        math.floor(color.G*255+0.5),
-                        math.floor(color.B*255+0.5)
-                    }
-                    SaveConfig()
+                    if not silent then
+                        ColorConfig.Callback(color)
+                        ConfigData[configKey] = {
+                            math.floor(color.R*255+0.5),
+                            math.floor(color.G*255+0.5),
+                            math.floor(color.B*255+0.5)
+                        }
+                        SaveConfig()
+                    end
                 end
 
                 CountItem = CountItem + 1
@@ -3032,11 +3090,13 @@ function BastardXHub:Window(GuiConfig)
                     end
                 end)
 
-                function KeybindFunc:Set(keyCode)
+                function KeybindFunc:Set(keyCode, silent)
                     KeybindFunc.Value = keyCode
                     KBBtn.Text        = GetKeyName(keyCode)
-                    ConfigData[configKey] = tostring(keyCode.Name)
-                    SaveConfig()
+                    if not silent then
+                        ConfigData[configKey] = tostring(keyCode.Name)
+                        SaveConfig()
+                    end
                 end
 
                 CountItem = CountItem + 1
