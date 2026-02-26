@@ -169,12 +169,27 @@ end
 
 -- ── Persistência de tema ─────────────────────────────────────────
 local THEME_FILE = "NexusUI_theme.txt"
+local _canWrite  = type(writefile) == "function"
+local _canRead   = type(readfile)  == "function"
+local _canIsfile = type(isfile)    == "function"
 local function SaveTheme(name)
-    pcall(function() writefile(THEME_FILE, name) end)
+    if not _canWrite then return end
+    pcall(function()
+        if _canIsfile then
+            -- garante que o arquivo existe antes de escrever
+            writefile(THEME_FILE, name)
+        else
+            writefile(THEME_FILE, name)
+        end
+    end)
 end
 local function LoadTheme()
+    if not _canRead then return "Cyan" end
     local ok, data = pcall(function() return readfile(THEME_FILE) end)
-    if ok and data and PALETTES[data] then return data end
+    if ok and type(data) == "string" then
+        data = data:match("^%s*(.-)%s*$")  -- trim
+        if PALETTES[data] then return data end
+    end
     return "Cyan"
 end
 
@@ -436,6 +451,64 @@ end
 local CF={}
 
 -- ─── BUTTON ────────────────────────────────────────────────────
+-- ═══════════════════════════════════════════════════════════════
+--  AUTO SAVE SYSTEM
+--  Salva estado de Toggles, Sliders e Dropdowns automaticamente.
+--  Uso: NexusUI:EnableAutoSave()  → salva em "NexusUI_autosave.txt"
+--  Opcional: NexusUI:EnableAutoSave("MeuHub")  → "MeuHub_autosave.txt"
+-- ═══════════════════════════════════════════════════════════════
+local _AS = {
+    enabled  = false,
+    file     = "NexusUI_autosave.txt",
+    data     = {},   -- { [key] = value }
+    dirty    = false,
+}
+
+local function AS_key(sectionName, elemName)
+    -- chave única: "NomeSecao||NomeElemento"
+    return tostring(sectionName or "") .. "||" .. tostring(elemName or "")
+end
+
+local function AS_save()
+    if not _AS.enabled or not _canWrite then return end
+    local lines = {}
+    for k, v in pairs(_AS.data) do
+        -- serializa: key=valor (sem newlines no valor)
+        local sv = tostring(v):gsub("
+","\n")
+        table.insert(lines, k .. "=" .. sv)
+    end
+    pcall(function() writefile(_AS.file, table.concat(lines, "
+")) end)
+    _AS.dirty = false
+end
+
+local function AS_load()
+    if not _canRead then return end
+    local ok, raw = pcall(function() return readfile(_AS.file) end)
+    if not ok or type(raw) ~= "string" then return end
+    _AS.data = {}
+    for line in raw:gmatch("[^
+]+") do
+        local k, v = line:match("^(.-)=(.*)$")
+        if k and v then
+            _AS.data[k] = v:gsub("\n","
+")
+        end
+    end
+end
+
+local function AS_get(sectionName, elemName)
+    if not _AS.enabled then return nil end
+    return _AS.data[AS_key(sectionName, elemName)]
+end
+
+local function AS_set(sectionName, elemName, value)
+    if not _AS.enabled then return end
+    _AS.data[AS_key(sectionName, elemName)] = tostring(value)
+    AS_save()
+end
+
 function CF.Button(o,parent,z)
     o=o or{}; z=z or 5
     local wrap=Fr(TH.Surface,0,SafeName("Btn"),z)
@@ -469,6 +542,11 @@ end
 -- ─── TOGGLE ────────────────────────────────────────────────────
 function CF.Toggle(o,parent,z)
     o=o or{}; z=z or 5; local state=o.Default==true
+    -- AutoSave: carrega estado salvo ANTES de criar os elementos visuais
+    do
+        local sv = AS_get(o._secName, o.Name)
+        if sv ~= nil then state = (sv == "true") end
+    end
     local wrap=Fr(TH.Surface,0,SafeName("Tog"),z)
     wrap.Size=UDim2.new(1,0,0,SA.BtnH); wrap.Parent=parent
     RC(wrap); SK(wrap,TH.Border,1,0)
@@ -498,6 +576,7 @@ function CF.Toggle(o,parent,z)
         state=v
         Anim.T(track,{BackgroundColor3=v and TH.Cyan or TH.Border},TH.Fast)
         Anim.T(thumb,{Position=UDim2.new(0,v and(TW-ts-TP)or TP,0.5,0)},TH.Fast)
+        AS_set(o._secName, o.Name, v)
         if fire and o.Callback then task.spawn(function() local ok,err=pcall(o.Callback,state); if not ok then warn("[NexusUI Tog]",err) end end) end
     end
     local hit=TB(TH.Bg,1,z+10); hit.Size=UDim2.fromScale(1,1); hit.Parent=wrap
@@ -513,6 +592,11 @@ function CF.Slider(o,parent,z)
     o=o or{}; z=z or 5
     local mn,mx,step=o.Min or 0,o.Max or 100,o.Step or 1
     local val=math.clamp(o.Default or mn,mn,mx); local suf=o.Suffix or""
+    -- AutoSave: carrega valor salvo ANTES de criar os elementos visuais
+    do
+        local sv = AS_get(o._secName, o.Name)
+        if sv ~= nil then local n = tonumber(sv); if n then val = math.clamp(n, mn, mx) end end
+    end
     local wrap=Fr(TH.Surface,0,SafeName("Sld"),z)
     wrap.Size=UDim2.new(1,0,0,SA.BtnH+22); wrap.Parent=parent
     RC(wrap); SK(wrap,TH.Border,1,0)
@@ -547,6 +631,7 @@ function CF.Slider(o,parent,z)
         Anim.T(fill,{Size=UDim2.new(p,0,1,0)},TH.Fast)
         Anim.T(thmb,{Position=UDim2.new(p,0,0.5,0)},TH.Fast)
         valL.Text=tostring(val)..suf
+        if fire then AS_set(o._secName, o.Name, val) end
         if fire and o.Callback then task.spawn(function() local ok,err=pcall(o.Callback,val); if not ok then warn("[NexusUI Sld]",err) end end) end
     end
     local dragging=false; local conns={}
@@ -577,6 +662,15 @@ function CF.Dropdown(o,parent,z)
     o=o or{}; z=z or 5
     local options=o.Options or{}
     local selected=o.Default or(options[1] or"Select...")
+    -- AutoSave: carrega opção salva se ainda existir nas opções atuais
+    do
+        local sv = AS_get(o._secName, o.Name)
+        if sv ~= nil then
+            for _, opt in ipairs(options) do
+                if opt == sv then selected = sv; break end
+            end
+        end
+    end
     local isOpen=false
 
     -- Wrap: AutomaticSize=Y para crescer e empurrar elementos abaixo ao abrir
@@ -655,6 +749,7 @@ function CF.Dropdown(o,parent,z)
                 Anim.T(arrow,{Rotation=0},TH.Fast)
                 Anim.T(wsk,{Color=TH.Border,Transparency=0},TH.Fast)
                 Anim.T(wrap,{BackgroundColor3=TH.Surface},TH.Fast)
+                AS_set(o._secName, o.Name, selected)
                 if o.Callback then task.spawn(function() local ok,err=pcall(o.Callback,selected); if not ok then warn("[NexusUI DD]",err) end end) end
             end)
         end
@@ -1051,14 +1146,18 @@ function CF.Section(name,parent,z)
     -- Divider
     local div=Fr(TH.Border,0,"_Div",z+2); div.Size=UDim2.new(1,0,0,1); div.Parent=inner
     local api={}
-    function api:CreateButton(o)    return CF.Button(o,   inner,z+3) end
-    function api:CreateToggle(o)    return CF.Toggle(o,   inner,z+3) end
-    function api:CreateSlider(o)    return CF.Slider(o,   inner,z+3) end
-    function api:CreateDropdown(o)  return CF.Dropdown(o, inner,z+3) end
-    function api:CreateKeybind(o)   return CF.Keybind(o,  inner,z+3) end
-    function api:CreateInput(o)     return CF.Input(o,    inner,z+3) end
-    function api:CreateLabel(t)     return CF.Label(t,    inner,z+3) end
-    function api:CreateParagraph(o) return CF.Paragraph(o,inner,z+3) end
+    local function inj(o)
+        if type(o) == "table" then o._secName = name end
+        return o
+    end
+    function api:CreateButton(o)    return CF.Button(inj(o),    inner,z+3) end
+    function api:CreateToggle(o)    return CF.Toggle(inj(o),    inner,z+3) end
+    function api:CreateSlider(o)    return CF.Slider(inj(o),    inner,z+3) end
+    function api:CreateDropdown(o)  return CF.Dropdown(inj(o),  inner,z+3) end
+    function api:CreateKeybind(o)   return CF.Keybind(inj(o),   inner,z+3) end
+    function api:CreateInput(o)     return CF.Input(inj(o),     inner,z+3) end
+    function api:CreateLabel(t)     return CF.Label(t,          inner,z+3) end
+    function api:CreateParagraph(o) return CF.Paragraph(inj(o), inner,z+3) end
     return wrap,api
 end
 
@@ -1786,9 +1885,11 @@ local function BuildIntroScreen(sg, opts, onDone)
         end
         pctLbl.Text = "100%"
         TweenService:Create(barFill, TH.Med, {Size = UDim2.new(1, 0, 1, 0)}):Play()
-        task.wait(0.45)
-        -- Fade out tudo
-        local fadeInfo = TweenInfo.new(0.45, Enum.EasingStyle.Quint)
+        task.wait(0.35)
+        -- Abre a janela JUNTO com o fade out (sem delay visível)
+        if onDone then onDone() end
+        -- Fade out tudo simultaneamente
+        local fadeInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quint)
         TweenService:Create(overlay,   fadeInfo, {BackgroundTransparency = 1}):Play()
         TweenService:Create(card,      fadeInfo, {BackgroundTransparency = 1}):Play()
         TweenService:Create(titleLbl,  fadeInfo, {TextTransparency = 1}):Play()
@@ -1797,12 +1898,13 @@ local function BuildIntroScreen(sg, opts, onDone)
         TweenService:Create(barBg,     fadeInfo, {BackgroundTransparency = 1}):Play()
         TweenService:Create(barFill,   fadeInfo, {BackgroundTransparency = 1}):Play()
         TweenService:Create(topBar,    fadeInfo, {BackgroundTransparency = 1}):Play()
-        task.delay(0.5, function()
+        task.delay(0.45, function()
             overlay:Destroy()
-            if onDone then onDone() end
         end)
     end)
 end
+
+
 
 -- ═══════════════════════════════════════════════════════════════
 --  LIBRARY
@@ -1824,6 +1926,17 @@ function Library:SetAccent(name)
 end
 function Library:GetAccent()
     return _currentPalName
+end
+-- Ativa o sistema de auto-save de Toggles, Sliders e Dropdowns.
+-- fileName (opcional): nome do arquivo de save (ex: "MeuHub" → "MeuHub_autosave.txt")
+function Library:EnableAutoSave(fileName)
+    _AS.file    = (fileName or "NexusUI") .. "_autosave.txt"
+    _AS.enabled = true
+    AS_load()   -- carrega dados existentes imediatamente
+end
+-- Salva manualmente o estado atual (útil se quiser forçar um save pontual)
+function Library:SaveNow()
+    AS_save()
 end
 function Library:CreateWindow(opts)
     self:_Init()
