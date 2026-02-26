@@ -7,9 +7,13 @@ if not isfolder("Bastard X Hub/Config") then
     makefolder("Bastard X Hub/Config")
 end
 
-local gameName   = tostring(game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
+local _ok, _info = pcall(function()
+    return game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+end)
+local gameName = _ok and tostring(_info) or "UnknownGame"
 gameName         = gameName:gsub("[^%w_ ]", "")
 gameName         = gameName:gsub("%s+", "_")
+if gameName == "" then gameName = "UnknownGame" end
 
 local ConfigFile = "Bastard X Hub/Config/Bastard_" .. gameName .. ".json"
 
@@ -277,6 +281,7 @@ function BastardXHub:MakeNotify(NotifyConfig)
         local DropShadow = Instance.new("ImageLabel");
         local Top = Instance.new("Frame");
         local TextLabel = Instance.new("TextLabel");
+        local TextLabel1 = Instance.new("TextLabel");   -- FIX: estava faltando, causando falha silenciosa
         local UICorner1 = Instance.new("UICorner");
             local Close = Instance.new("TextButton");
         local ImageLabel = Instance.new("ImageLabel");
@@ -503,10 +508,23 @@ function BastardXHub:Window(GuiConfig)
 
     -- Temas padrão
     local ThemeColors = {
-        darker   = Color3.fromRGB(8,  8,  8),
-        dark     = Color3.fromRGB(15, 15, 15),
-        midnight = Color3.fromRGB(6,  6,  14),
-        ocean    = Color3.fromRGB(6,  14, 22),
+        -- ── Escuros base
+        darker   = Color3.fromRGB(8,   8,   8),
+        dark     = Color3.fromRGB(15,  15,  15),
+        carbon   = Color3.fromRGB(10,  10,  10),
+        obsidian = Color3.fromRGB(4,   4,   6),
+        -- ── Tons frios
+        midnight = Color3.fromRGB(6,   6,   14),
+        navy     = Color3.fromRGB(4,   8,   22),
+        ocean    = Color3.fromRGB(6,   14,  22),
+        teal     = Color3.fromRGB(4,   18,  18),
+        slate    = Color3.fromRGB(12,  14,  18),
+        -- ── Tons quentes / vibrantes
+        grape    = Color3.fromRGB(14,  6,   26),
+        rose     = Color3.fromRGB(22,  10,  14),
+        crimson  = Color3.fromRGB(22,  6,   8),
+        bronze   = Color3.fromRGB(20,  12,  4),
+        forest   = Color3.fromRGB(6,   18,  10),
     }
     -- Cor padrão: preto puro
     GuiConfig.ThemePreset  = GuiConfig.ThemePreset or "darker"
@@ -532,6 +550,7 @@ function BastardXHub:Window(GuiConfig)
     Main.BorderSizePixel = 0
     Main.Position = UDim2.new(0.5, 0, 0.5, 0)
     Main.Size = UDim2.new(1, -47, 1, -47)
+    Main.ClipsDescendants = true   -- necessário para o minimize funcionar
     Main.Name = "Main"
     Main.Parent = DropShadow
 
@@ -716,9 +735,46 @@ function BastardXHub:Window(GuiConfig)
         end
     end
 
+    -- ── Minimize / Restore
+    local _isMinimized  = false
+    local _fullSizeRef  = nil   -- guardado após MakeDraggable definir o tamanho
+
     Min.Activated:Connect(function()
         CircleClick(Min, Mouse.X, Mouse.Y)
-        DropShadowHolder.Visible = false
+        _isMinimized = not _isMinimized
+
+        if _isMinimized then
+            -- Guarda o tamanho atual antes de minimizar
+            _fullSizeRef = DropShadowHolder.Size
+
+            -- Anima para a altura da barra de título (38 px = Top bar)
+            TweenService:Create(
+                DropShadowHolder,
+                TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+                { Size = UDim2.new(
+                    DropShadowHolder.Size.X.Scale,
+                    DropShadowHolder.Size.X.Offset,
+                    0, 38
+                )}
+            ):Play()
+
+            -- Ícone indica "restaurar" (levemente transparente)
+            TweenService:Create(ImageLabel2, TweenInfo.new(0.2),
+                { ImageTransparency = 0.6 }):Play()
+        else
+            -- Restaura tamanho anterior (ou padrão se não tiver sido definido)
+            local restoreSize = _fullSizeRef
+                or (isMobile and UDim2.new(0, 470, 0, 270) or UDim2.new(0, 640, 0, 400))
+
+            TweenService:Create(
+                DropShadowHolder,
+                TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+                { Size = restoreSize }
+            ):Play()
+
+            TweenService:Create(ImageLabel2, TweenInfo.new(0.2),
+                { ImageTransparency = 0.2 }):Play()
+        end
     end)
     Close.Activated:Connect(function()
         CircleClick(Close, Mouse.X, Mouse.Y)
@@ -829,15 +885,14 @@ function BastardXHub:Window(GuiConfig)
         end)
     end)
 
-    local ToggleKey = Enum.KeyCode.X
-    local CloseKey = Enum.KeyCode.F4
+    local HotKeys = { Toggle = Enum.KeyCode.X, Close = Enum.KeyCode.F4 }
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == ToggleKey then
+        if input.KeyCode == HotKeys.Toggle then
             if DropShadowHolder then
                 DropShadowHolder.Visible = not DropShadowHolder.Visible
             end
-        elseif input.KeyCode == CloseKey then
+        elseif input.KeyCode == HotKeys.Close then
             if BastardXHub then
                 BastardXHub:Destroy()
                 local fb = game.CoreGui:FindFirstChild("BastardFloatBtn")
@@ -848,6 +903,8 @@ function BastardXHub:Window(GuiConfig)
 
     DropShadowHolder.Size = UDim2.new(0, 115 + TextLabel.TextBounds.X, 0, 350)
     MakeDraggable(Top, DropShadowHolder)
+    -- MakeDraggable sobrescreve o tamanho internamente; guardar DEPOIS para restore correto
+    _fullSizeRef = DropShadowHolder.Size
 
     local MoreBlur = Instance.new("Frame");
     local DropShadowHolder1 = Instance.new("Frame");
@@ -960,7 +1017,17 @@ function BastardXHub:Window(GuiConfig)
     DropPageLayout.Parent = DropdownFolder
     --// Tabs
     local Tabs = {}
-    Tabs._holder = DropShadowHolder   -- expõe o frame principal para FloatBtn fazer toggle
+    Tabs._holder     = DropShadowHolder   -- expõe o frame principal para FloatBtn fazer toggle
+    Tabs._guiConfig  = GuiConfig
+    Tabs._hotkeys    = HotKeys
+    Tabs._accentRefs = {
+        gradients    = {},   -- UIGradient (dividers, section lines)
+        bars         = {},   -- SliderDraggable frames
+        circles      = {},   -- SliderCircle frames
+        strokes      = {},   -- UIStroke6 (slider circle outline)
+        chooseFrame  = nil,  -- Tab indicator bar
+        chooseStroke = nil,  -- Tab indicator stroke
+    }
     local CountTab = 0
     local CountDropdown = 0
     function Tabs:AddTab(TabConfig)
@@ -1063,6 +1130,8 @@ function BastardXHub:Window(GuiConfig)
             UIStroke2.Parent = ChooseFrame
 
             UICorner4.Parent = ChooseFrame
+            Tabs._accentRefs.chooseFrame  = ChooseFrame
+            Tabs._accentRefs.chooseStroke = UIStroke2
         end
 
         if TabConfig.Icon ~= "" then
@@ -1230,6 +1299,7 @@ function BastardXHub:Window(GuiConfig)
                 ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
             }
             UIGradient.Parent = SectionDecideFrame
+            table.insert(Tabs._accentRefs.gradients, UIGradient)
 
             --// Section Add
             local SectionAdd = Instance.new("Frame");
@@ -1815,15 +1885,15 @@ function BastardXHub:Window(GuiConfig)
                     ToggleFunc:Set(ToggleFunc.Value)
                 end)
 
-                function ToggleFunc:Set(Value)
-                    if typeof(ToggleConfig.Callback) == "function" then
+                function ToggleFunc:Set(Value, silent)
+                    if not silent and typeof(ToggleConfig.Callback) == "function" then
                         local ok, err = pcall(function()
                             ToggleConfig.Callback(Value)
                         end)
                         if not ok then warn("Toggle Callback error:", err) end
                     end
                     ConfigData[configKey] = Value
-                    SaveConfig()
+                    if not silent then SaveConfig() end
                     if Value then
                         TweenService:Create(ToggleTitle, TweenInfo.new(0.2), { TextColor3 = GuiConfig.Color }):Play()
                         TweenService:Create(ToggleCircle, TweenInfo.new(0.2), { Position = UDim2.new(0, 15, 0, 0) })
@@ -1843,7 +1913,7 @@ function BastardXHub:Window(GuiConfig)
                     end
                 end
 
-                ToggleFunc:Set(ToggleFunc.Value)
+                ToggleFunc:Set(ToggleFunc.Value, true)   -- init silencioso: só atualiza visual
                 CountItem = CountItem + 1
                 Elements[configKey] = ToggleFunc
                 return ToggleFunc
@@ -2002,6 +2072,9 @@ function BastardXHub:Window(GuiConfig)
 
                 UIStroke6.Color = GuiConfig.Color
                 UIStroke6.Parent = SliderCircle
+                table.insert(Tabs._accentRefs.bars,    SliderDraggable)
+                table.insert(Tabs._accentRefs.circles,  SliderCircle)
+                table.insert(Tabs._accentRefs.strokes,  UIStroke6)
 
                 local Dragging = false
                 local function Round(Number, Factor)
@@ -2011,7 +2084,7 @@ function BastardXHub:Window(GuiConfig)
                     end
                     return Result
                 end
-                function SliderFunc:Set(Value)
+                function SliderFunc:Set(Value, silent)
                     Value = math.clamp(Round(Value, SliderConfig.Increment), SliderConfig.Min, SliderConfig.Max)
                     SliderFunc.Value = Value
                     TextBox.Text = tostring(Value)
@@ -2020,10 +2093,11 @@ function BastardXHub:Window(GuiConfig)
                         TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
                         { Size = UDim2.fromScale((Value - SliderConfig.Min) / (SliderConfig.Max - SliderConfig.Min), 1) }
                     ):Play()
-
-                    SliderConfig.Callback(Value)
-                    ConfigData[configKey] = Value
-                    SaveConfig()
+                    if not silent then
+                        SliderConfig.Callback(Value)
+                        ConfigData[configKey] = Value
+                        SaveConfig()
+                    end
                 end
 
                 SliderFrame.InputBegan:Connect(function(Input)
@@ -2075,7 +2149,7 @@ function BastardXHub:Window(GuiConfig)
                         SliderFunc:Set(SliderConfig.Min)
                     end
                 end)
-                SliderFunc:Set(SliderConfig.Default)
+                SliderFunc:Set(SliderConfig.Default, true)  -- init silencioso
                 CountItem = CountItem + 1
                 Elements[configKey] = SliderFunc
                 return SliderFunc
@@ -2193,15 +2267,17 @@ function BastardXHub:Window(GuiConfig)
                 InputTextBox.Size = UDim2.new(1, -10, 1, -8)
                 InputTextBox.Name = "InputTextBox"
                 InputTextBox.Parent = InputFrame
-                function InputFunc:Set(Value)
+                function InputFunc:Set(Value, silent)
                     InputTextBox.Text = Value
                     InputFunc.Value = Value
-                    InputConfig.Callback(Value)
-                    ConfigData[configKey] = Value
-                    SaveConfig()
+                    if not silent then
+                        InputConfig.Callback(Value)
+                        ConfigData[configKey] = Value
+                        SaveConfig()
+                    end
                 end
 
-                InputFunc:Set(InputFunc.Value)
+                InputFunc:Set(InputFunc.Value, true)  -- init silencioso
 
                 InputTextBox.FocusLost:Connect(function()
                     InputFunc:Set(InputTextBox.Text)
@@ -2463,15 +2539,17 @@ function BastardXHub:Window(GuiConfig)
                     end)
                 end
 
-                function DropdownFunc:Set(Value)
+                function DropdownFunc:Set(Value, silent)
                     if DropdownConfig.Multi then
                         DropdownFunc.Value = type(Value) == "table" and Value or {}
                     else
                         DropdownFunc.Value = (type(Value) == "table" and Value[1]) or Value
                     end
 
-                    ConfigData[configKey] = DropdownFunc.Value
-                    SaveConfig()
+                    if not silent then
+                        ConfigData[configKey] = DropdownFunc.Value
+                        SaveConfig()
+                    end
 
                     local texts = {}
                     for _, Drop in ScrollSelect:GetChildren() do
@@ -2501,7 +2579,7 @@ function BastardXHub:Window(GuiConfig)
                         and (DropdownConfig.Multi and "Select Options" or "Select Option")
                         or table.concat(texts, ", ")
 
-                    if DropdownConfig.Callback then
+                    if not silent and DropdownConfig.Callback then
                         if DropdownConfig.Multi then
                             DropdownConfig.Callback(DropdownFunc.Value)
                         else
@@ -2519,7 +2597,7 @@ function BastardXHub:Window(GuiConfig)
                     return self.Value
                 end
 
-                function DropdownFunc:SetValues(newList, selecting)
+                function DropdownFunc:SetValues(newList, selecting, silent)
                     newList = newList or {}
                     selecting = selecting or (DropdownConfig.Multi and {} or nil)
                     DropdownFunc:Clear()
@@ -2527,10 +2605,10 @@ function BastardXHub:Window(GuiConfig)
                         DropdownFunc:AddOption(v)
                     end
                     DropdownFunc.Options = newList
-                    DropdownFunc:Set(selecting)
+                    DropdownFunc:Set(selecting, silent)
                 end
 
-                DropdownFunc:SetValues(DropdownFunc.Options, DropdownFunc.Value)
+                DropdownFunc:SetValues(DropdownFunc.Options, DropdownFunc.Value, true)  -- init silencioso
 
                 CountItem = CountItem + 1
                 CountDropdown = CountDropdown + 1
@@ -2557,6 +2635,7 @@ function BastardXHub:Window(GuiConfig)
                     ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
                 }
                 UIGradient.Parent = Divider
+                table.insert(Tabs._accentRefs.gradients, UIGradient)
 
                 local UICorner = Instance.new("UICorner")
                 UICorner.CornerRadius = UDim.new(0, 2)
@@ -2600,14 +2679,574 @@ function BastardXHub:Window(GuiConfig)
                 return SubSection
             end
 
+            -- ── Label simples (texto estático, atualizável)
+            function Items:AddLabel(LabelConfig)
+                LabelConfig         = LabelConfig or {}
+                LabelConfig.Text    = LabelConfig.Text  or "Label"
+                LabelConfig.Color   = LabelConfig.Color or Color3.fromRGB(180, 180, 180)
+
+                local LabelFrame = Instance.new("Frame")
+                LabelFrame.BackgroundTransparency = 1
+                LabelFrame.Size        = UDim2.new(1, 0, 0, 22)
+                LabelFrame.LayoutOrder = CountItem
+                LabelFrame.Name        = "Label"
+                LabelFrame.Parent      = SectionAdd
+
+                local LabelText = Instance.new("TextLabel")
+                LabelText.Font          = Enum.Font.Gotham
+                LabelText.Text          = LabelConfig.Text
+                LabelText.TextSize      = 12
+                LabelText.TextColor3    = LabelConfig.Color
+                LabelText.TextXAlignment = Enum.TextXAlignment.Left
+                LabelText.BackgroundTransparency = 1
+                LabelText.Position      = UDim2.new(0, 10, 0, 0)
+                LabelText.Size          = UDim2.new(1, -20, 1, 0)
+                LabelText.TextWrapped   = true
+                LabelText.RichText      = true
+                LabelText.Name          = "LabelText"
+                LabelText.Parent        = LabelFrame
+
+                local LabelFunc = {}
+                function LabelFunc:Set(text)
+                    LabelText.Text = text or ""
+                    -- ajusta altura se necessário
+                    local needed = LabelText.TextBounds.Y + 6
+                    if needed > 22 then
+                        LabelFrame.Size = UDim2.new(1, 0, 0, needed)
+                    end
+                end
+                function LabelFunc:SetColor(col)
+                    LabelText.TextColor3 = col
+                end
+
+                CountItem = CountItem + 1
+                return LabelFunc
+            end
+
+            -- ── Color Picker HSV (collapsible)
+            function Items:AddColorPicker(ColorConfig)
+                ColorConfig          = ColorConfig or {}
+                ColorConfig.Title    = ColorConfig.Title    or "Color Picker"
+                ColorConfig.Default  = ColorConfig.Default  or Color3.fromRGB(255, 105, 180)
+                ColorConfig.Callback = ColorConfig.Callback or function() end
+
+                local configKey = "ColorPicker_" .. ColorConfig.Title
+                if ConfigData[configKey] ~= nil then
+                    local d = ConfigData[configKey]
+                    if type(d) == "table" and d[1] then
+                        ColorConfig.Default = Color3.fromRGB(d[1], d[2], d[3])
+                    end
+                end
+
+                local defH, defS, defV = Color3.toHSV(ColorConfig.Default)
+                defH, defS, defV = defH * 360, defS * 100, defV * 100
+
+                local ColorPickerFunc = { Value = ColorConfig.Default }
+                local isOpen = false
+
+                -- Frame principal
+                local CPFrame = Instance.new("Frame")
+                CPFrame.BackgroundColor3     = Color3.fromRGB(255, 255, 255)
+                CPFrame.BackgroundTransparency = 0.935
+                CPFrame.BorderSizePixel      = 0
+                CPFrame.LayoutOrder          = CountItem
+                CPFrame.ClipsDescendants     = true
+                CPFrame.Size                 = UDim2.new(1, 0, 0, 38)
+                CPFrame.Name                 = "ColorPicker"
+                CPFrame.Parent               = SectionAdd
+                Instance.new("UICorner", CPFrame).CornerRadius = UDim.new(0, 4)
+
+                local CPTitle = Instance.new("TextLabel")
+                CPTitle.Font             = Enum.Font.GothamBold
+                CPTitle.Text             = ColorConfig.Title
+                CPTitle.TextSize         = 13
+                CPTitle.TextColor3       = Color3.fromRGB(231, 231, 231)
+                CPTitle.TextXAlignment   = Enum.TextXAlignment.Left
+                CPTitle.BackgroundTransparency = 1
+                CPTitle.Position         = UDim2.new(0, 10, 0, 12)
+                CPTitle.Size             = UDim2.new(1, -55, 0, 14)
+                CPTitle.Parent           = CPFrame
+
+                local CPSwatch = Instance.new("Frame")
+                CPSwatch.Size            = UDim2.new(0, 22, 0, 22)
+                CPSwatch.AnchorPoint     = Vector2.new(1, 0.5)
+                CPSwatch.Position        = UDim2.new(1, -10, 0.5, 0)
+                CPSwatch.BackgroundColor3 = ColorConfig.Default
+                CPSwatch.BorderSizePixel = 0
+                CPSwatch.Name            = "CPSwatch"
+                CPSwatch.Parent          = CPFrame
+                Instance.new("UICorner", CPSwatch).CornerRadius = UDim.new(0, 4)
+                local swatchStroke = Instance.new("UIStroke")
+                swatchStroke.Color = Color3.fromRGB(80, 80, 80); swatchStroke.Thickness = 1
+                swatchStroke.Parent = CPSwatch
+
+                -- Botão de toggle: cobre APENAS o cabeçalho (38 px), não a área expandida
+                local CPToggleBtn = Instance.new("TextButton")
+                CPToggleBtn.BackgroundTransparency = 1
+                CPToggleBtn.Size   = UDim2.new(1, 0, 0, 38)
+                CPToggleBtn.Position = UDim2.new(0, 0, 0, 0)
+                CPToggleBtn.Text   = ""
+                CPToggleBtn.ZIndex = 2
+                CPToggleBtn.Parent = CPFrame
+
+                -- Área expandida (HSV sliders)
+                local CPExpand = Instance.new("Frame")
+                CPExpand.BackgroundTransparency = 1
+                CPExpand.Size     = UDim2.new(1, 0, 0, 90)
+                CPExpand.Position = UDim2.new(0, 0, 0, 38)
+                CPExpand.Name     = "CPExpand"
+                CPExpand.Parent   = CPFrame
+
+                -- Utilitário: cria uma faixa de slider HSV
+                local function MakeHSVSlider(lbl, yOff, minV, maxV, defVal, gradCS)
+                    local sf = Instance.new("Frame")
+                    sf.BackgroundTransparency = 1
+                    sf.Size     = UDim2.new(1, -20, 0, 20)
+                    sf.Position = UDim2.new(0, 10, 0, yOff)
+                    sf.Parent   = CPExpand
+
+                    local lb = Instance.new("TextLabel")
+                    lb.Font    = Enum.Font.GothamBold
+                    lb.Text    = lbl
+                    lb.TextSize = 10
+                    lb.TextColor3 = Color3.fromRGB(140, 140, 140)
+                    lb.BackgroundTransparency = 1
+                    lb.Size    = UDim2.new(0, 14, 1, 0)
+                    lb.TextXAlignment = Enum.TextXAlignment.Left
+                    lb.Parent  = sf
+
+                    local track = Instance.new("Frame")
+                    track.AnchorPoint     = Vector2.new(1, 0.5)
+                    track.Position        = UDim2.new(1, 0, 0.5, 0)
+                    track.Size            = UDim2.new(1, -18, 0, 6)
+                    track.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+                    track.BorderSizePixel = 0
+                    track.ClipsDescendants = false
+                    track.Name            = "Track"
+                    track.Parent          = sf
+                    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 3)
+
+                    if gradCS then
+                        local g = Instance.new("UIGradient")
+                        g.Color  = gradCS
+                        g.Name   = "TrackGrad"
+                        g.Parent = track
+                    end
+
+                    local circle = Instance.new("Frame")
+                    circle.AnchorPoint    = Vector2.new(0.5, 0.5)
+                    circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                    circle.BorderSizePixel = 0
+                    circle.Size           = UDim2.new(0, 11, 0, 11)
+                    circle.Position       = UDim2.new((defVal - minV)/(maxV - minV), 0, 0.5, 0)
+                    circle.ZIndex         = 4
+                    circle.Name           = "Circle"
+                    circle.Parent         = track
+                    Instance.new("UICorner", circle).CornerRadius = UDim.new(0, 6)
+                    local csk = Instance.new("UIStroke")
+                    csk.Color     = Color3.fromRGB(180, 180, 180)
+                    csk.Thickness = 1.2
+                    csk.Parent    = circle
+
+                    local curVal  = defVal
+                    local dragging = false
+
+                    local function doUpdate(inp, cbk)
+                        local sc = math.clamp(
+                            (inp.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+                        curVal = minV + (maxV - minV) * sc
+                        circle.Position = UDim2.new(sc, 0, 0.5, 0)
+                        if cbk then cbk() end
+                    end
+
+                    track.InputBegan:Connect(function(inp)
+                        if inp.UserInputType == Enum.UserInputType.MouseButton1
+                            or inp.UserInputType == Enum.UserInputType.Touch then
+                            dragging = true
+                            doUpdate(inp, nil)
+                        end
+                    end)
+                    track.InputEnded:Connect(function(inp)
+                        if inp.UserInputType == Enum.UserInputType.MouseButton1
+                            or inp.UserInputType == Enum.UserInputType.Touch then
+                            dragging = false
+                        end
+                    end)
+
+                    return {
+                        get      = function() return curVal end,
+                        set      = function(v)
+                            curVal = math.clamp(v, minV, maxV)
+                            circle.Position = UDim2.new((curVal-minV)/(maxV-minV), 0, 0.5, 0)
+                        end,
+                        circle   = circle,
+                        track    = track,
+                        dragging = function() return dragging end,
+                        setDrag  = function(v) dragging = v end,
+                        doUpdate = doUpdate,
+                    }
+                end
+
+                -- Gradiente de matiz
+                local hueCS
+                do
+                    local pts = {}
+                    for i = 0, 6 do
+                        pts[#pts+1] = ColorSequenceKeypoint.new(i/6, Color3.fromHSV(i/6, 1, 1))
+                    end
+                    hueCS = ColorSequence.new(pts)
+                end
+
+                local sliderH = MakeHSVSlider("H", 4,  0,   360, defH, hueCS)
+                local sliderS = MakeHSVSlider("S", 34, 0,   100, defS,
+                    ColorSequence.new(Color3.fromHSV(defH/360, 0, defV/100), Color3.fromHSV(defH/360, 1, defV/100)))
+                local sliderV = MakeHSVSlider("V", 64, 0,   100, defV,
+                    ColorSequence.new(Color3.fromRGB(0,0,0), Color3.fromHSV(defH/360, defS/100, 1)))
+
+                -- Callback de mudança de cor
+                local function OnColorChange()
+                    local hv = sliderH.get() / 360
+                    local sv = sliderS.get() / 100
+                    local vv = sliderV.get() / 100
+                    local col = Color3.fromHSV(hv, sv, vv)
+                    ColorPickerFunc.Value = col
+                    CPSwatch.BackgroundColor3 = col
+
+                    -- Atualiza gradientes S e V dinamicamente
+                    local sg = sliderS.track:FindFirstChild("TrackGrad")
+                    if sg then sg.Color = ColorSequence.new(Color3.fromHSV(hv, 0, vv), Color3.fromHSV(hv, 1, vv)) end
+                    local vg = sliderV.track:FindFirstChild("TrackGrad")
+                    if vg then vg.Color = ColorSequence.new(Color3.fromRGB(0,0,0), Color3.fromHSV(hv, sv, 1)) end
+
+                    ColorConfig.Callback(col)
+                    ConfigData[configKey] = {
+                        math.floor(col.R * 255 + 0.5),
+                        math.floor(col.G * 255 + 0.5),
+                        math.floor(col.B * 255 + 0.5)
+                    }
+                    SaveConfig()
+                end
+
+                -- Conecta InputChanged global para arrastar sliders
+                UserInputService.InputChanged:Connect(function(inp)
+                    if inp.UserInputType ~= Enum.UserInputType.MouseMovement
+                        and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+                    for _, sl in ipairs({ sliderH, sliderS, sliderV }) do
+                        if sl.dragging() then
+                            sl.doUpdate(inp, OnColorChange)
+                        end
+                    end
+                end)
+                -- InputEnded também chama o callback final
+                UserInputService.InputEnded:Connect(function(inp)
+                    if inp.UserInputType ~= Enum.UserInputType.MouseButton1
+                        and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+                    for _, sl in ipairs({ sliderH, sliderS, sliderV }) do
+                        if sl.dragging() then
+                            sl.setDrag(false)
+                            OnColorChange()
+                        end
+                    end
+                end)
+                -- Conecta track.InputBegan para chamar OnColorChange imediato
+                for _, sl in ipairs({ sliderH, sliderS, sliderV }) do
+                    sl.track.InputBegan:Connect(function(inp)
+                        if inp.UserInputType == Enum.UserInputType.MouseButton1
+                            or inp.UserInputType == Enum.UserInputType.Touch then
+                            OnColorChange()
+                        end
+                    end)
+                end
+
+                -- Toggle expandir/recolher
+                CPToggleBtn.Activated:Connect(function()
+                    isOpen = not isOpen
+                    local newH = isOpen and (38 + 96) or 38
+                    TweenService:Create(CPFrame,
+                        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                        { Size = UDim2.new(1, 0, 0, newH) }):Play()
+                    -- aguarda o tween antes de recalcular o layout da seção
+                    task.delay(0.32, function()
+                        UpdateSizeSection()
+                    end)
+                end)
+
+                function ColorPickerFunc:Set(color, silent)
+                    ColorPickerFunc.Value = color
+                    CPSwatch.BackgroundColor3 = color
+                    local hv, sv, vv = Color3.toHSV(color)
+                    sliderH.set(hv * 360)
+                    sliderS.set(sv * 100)
+                    sliderV.set(vv * 100)
+                    if not silent then
+                        ColorConfig.Callback(color)
+                        ConfigData[configKey] = {
+                            math.floor(color.R*255+0.5),
+                            math.floor(color.G*255+0.5),
+                            math.floor(color.B*255+0.5)
+                        }
+                        SaveConfig()
+                    end
+                end
+
+                CountItem = CountItem + 1
+                Elements[configKey] = ColorPickerFunc
+                return ColorPickerFunc
+            end
+
+            -- ── Keybind (ouvir tecla e disparar callback)
+            function Items:AddKeybind(KeybindConfig)
+                KeybindConfig          = KeybindConfig or {}
+                KeybindConfig.Title    = KeybindConfig.Title    or "Keybind"
+                KeybindConfig.Default  = KeybindConfig.Default  or Enum.KeyCode.Unknown
+                KeybindConfig.Callback = KeybindConfig.Callback or function() end
+
+                local configKey = "Keybind_" .. KeybindConfig.Title
+                if ConfigData[configKey] ~= nil then
+                    local ok, kc = pcall(function()
+                        return Enum.KeyCode[ConfigData[configKey]]
+                    end)
+                    if ok and kc then KeybindConfig.Default = kc end
+                end
+
+                local KeybindFunc = { Value = KeybindConfig.Default }
+                local listening   = false
+
+                local KBFrame = Instance.new("Frame")
+                KBFrame.BackgroundColor3     = Color3.fromRGB(255, 255, 255)
+                KBFrame.BackgroundTransparency = 0.935
+                KBFrame.BorderSizePixel      = 0
+                KBFrame.LayoutOrder          = CountItem
+                KBFrame.Size                 = UDim2.new(1, 0, 0, 38)
+                KBFrame.Name                 = "Keybind"
+                KBFrame.Parent               = SectionAdd
+                Instance.new("UICorner", KBFrame).CornerRadius = UDim.new(0, 4)
+
+                local KBTitle = Instance.new("TextLabel")
+                KBTitle.Font             = Enum.Font.GothamBold
+                KBTitle.Text             = KeybindConfig.Title
+                KBTitle.TextSize         = 13
+                KBTitle.TextColor3       = Color3.fromRGB(231, 231, 231)
+                KBTitle.TextXAlignment   = Enum.TextXAlignment.Left
+                KBTitle.BackgroundTransparency = 1
+                KBTitle.Position         = UDim2.new(0, 10, 0, 12)
+                KBTitle.Size             = UDim2.new(1, -100, 0, 14)
+                KBTitle.Parent           = KBFrame
+
+                local KBBtn = Instance.new("TextButton")
+                KBBtn.Font               = Enum.Font.GothamBold
+                KBBtn.TextSize           = 11
+                KBBtn.TextColor3         = Color3.fromRGB(200, 200, 200)
+                KBBtn.BackgroundColor3   = Color3.fromRGB(255, 255, 255)
+                KBBtn.BackgroundTransparency = 0.88
+                KBBtn.BorderSizePixel    = 0
+                KBBtn.AnchorPoint        = Vector2.new(1, 0.5)
+                KBBtn.Position           = UDim2.new(1, -10, 0.5, 0)
+                KBBtn.Size               = UDim2.new(0, 72, 0, 22)
+                KBBtn.Name               = "KBBtn"
+                KBBtn.Parent             = KBFrame
+                Instance.new("UICorner", KBBtn).CornerRadius = UDim.new(0, 4)
+
+                local function GetKeyName(kc)
+                    if kc == Enum.KeyCode.Unknown then return "Nenhum" end
+                    local n = tostring(kc)
+                    return n:match("KeyCode%.(.+)") or n
+                end
+
+                KBBtn.Text = GetKeyName(KeybindConfig.Default)
+
+                KBBtn.MouseButton1Click:Connect(function()
+                    if listening then return end
+                    listening  = true
+                    KBBtn.Text = "..."
+                    TweenService:Create(KBBtn, TweenInfo.new(0.15),
+                        { BackgroundTransparency = 0.65, TextColor3 = GuiConfig.Color }):Play()
+
+                    local conn
+                    conn = UserInputService.InputBegan:Connect(function(input, gpe)
+                        if gpe then return end
+                        if input.UserInputType == Enum.UserInputType.Keyboard then
+                            conn:Disconnect()
+                            listening           = false
+                            KeybindFunc.Value   = input.KeyCode
+                            KBBtn.Text          = GetKeyName(input.KeyCode)
+                            TweenService:Create(KBBtn, TweenInfo.new(0.15),
+                                { BackgroundTransparency = 0.88, TextColor3 = Color3.fromRGB(200, 200, 200) }):Play()
+                            KeybindConfig.Callback(input.KeyCode)
+                            ConfigData[configKey] = tostring(input.KeyCode.Name)
+                            SaveConfig()
+                        end
+                    end)
+                end)
+
+                -- Dispara callback quando a tecla configurada for pressionada
+                UserInputService.InputBegan:Connect(function(input, gpe)
+                    if gpe then return end
+                    if not listening
+                        and input.UserInputType == Enum.UserInputType.Keyboard
+                        and input.KeyCode == KeybindFunc.Value
+                        and KeybindFunc.Value ~= Enum.KeyCode.Unknown then
+                        KeybindConfig.Callback(input.KeyCode)
+                    end
+                end)
+
+                function KeybindFunc:Set(keyCode, silent)
+                    KeybindFunc.Value = keyCode
+                    KBBtn.Text        = GetKeyName(keyCode)
+                    if not silent then
+                        ConfigData[configKey] = tostring(keyCode.Name)
+                        SaveConfig()
+                    end
+                end
+
+                CountItem = CountItem + 1
+                Elements[configKey] = KeybindFunc
+                return KeybindFunc
+            end
+
             CountSection = CountSection + 1
             return Items
+        end
+
+        -- ── Categoria visual (separador com rótulo entre seções)
+        function Sections:AddCategory(catName)
+            catName = catName or "Category"
+            local Cat = Instance.new("Frame")
+            Cat.Name            = "Category"
+            Cat.BackgroundTransparency = 1
+            Cat.Size            = UDim2.new(1, 0, 0, 22)
+            Cat.LayoutOrder     = CountSection
+            Cat.Parent          = ScrolLayers
+
+            local LineL = Instance.new("Frame")
+            LineL.Size              = UDim2.new(0.27, 0, 0, 1)
+            LineL.Position          = UDim2.new(0, 4, 0.5, 0)
+            LineL.BackgroundColor3  = Color3.fromRGB(55, 55, 55)
+            LineL.BorderSizePixel   = 0
+            LineL.Parent            = Cat
+
+            local CatLabel = Instance.new("TextLabel")
+            CatLabel.Font               = Enum.Font.GothamBold
+            CatLabel.Text               = catName:upper()
+            CatLabel.TextSize           = 9
+            CatLabel.TextColor3         = Color3.fromRGB(110, 110, 110)
+            CatLabel.BackgroundTransparency = 1
+            CatLabel.AnchorPoint        = Vector2.new(0.5, 0.5)
+            CatLabel.Position           = UDim2.new(0.5, 0, 0.5, 0)
+            CatLabel.Size               = UDim2.new(0.44, 0, 1, 0)
+            CatLabel.TextXAlignment     = Enum.TextXAlignment.Center
+            CatLabel.Parent             = Cat
+
+            local LineR = Instance.new("Frame")
+            LineR.Size              = UDim2.new(0.27, 0, 0, 1)
+            LineR.AnchorPoint       = Vector2.new(1, 0)
+            LineR.Position          = UDim2.new(1, -4, 0.5, 0)
+            LineR.BackgroundColor3  = Color3.fromRGB(55, 55, 55)
+            LineR.BorderSizePixel   = 0
+            LineR.Parent            = Cat
+
+            CountSection = CountSection + 1
+            return Cat
         end
 
         CountTab = CountTab + 1
         local safeName = TabConfig.Name:gsub("%s+", "_")
         _G[safeName] = Sections
         return Sections
+    end
+
+    -- ══════════════════════════════════════════════════════════════
+    --  MÉTODOS DE CONFIGURAÇÃO EM TEMPO REAL
+    -- ══════════════════════════════════════════════════════════════
+
+    Tabs._main = Main
+
+    --- Retorna lista de nomes de temas disponíveis
+    function Tabs:GetThemes()
+        local names = {}
+        for k in pairs(ThemeColors) do table.insert(names, k) end
+        table.sort(names)
+        return names
+    end
+
+    --- Troca o tema de fundo em tempo real
+    --- @param themeName string  — chave de ThemeColors (ex: "midnight", "navy", "grape"…)
+    function Tabs:SetTheme(themeName)
+        local col = ThemeColors[themeName]
+        if col then
+            TweenService:Create(Main,
+                TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                { BackgroundColor3 = col }):Play()
+        else
+            warn("BastardXHub:SetTheme — tema desconhecido: " .. tostring(themeName))
+        end
+    end
+
+    --- Troca a cor de destaque (accent) em tempo real
+    --- @param color Color3
+    function Tabs:SetAccentColor(color)
+        GuiConfig.Color = color
+        local cs = ColorSequence.new {
+            ColorSequenceKeypoint.new(0,   Color3.fromRGB(20, 20, 20)),
+            ColorSequenceKeypoint.new(0.5, color),
+            ColorSequenceKeypoint.new(1,   Color3.fromRGB(20, 20, 20))
+        }
+        -- Gradientes (divisores / linhas de seção)
+        for _, g in ipairs(self._accentRefs.gradients) do
+            if g and g.Parent then g.Color = cs end
+        end
+        -- Barras de slider
+        for _, b in ipairs(self._accentRefs.bars) do
+            if b and b.Parent then
+                TweenService:Create(b, TweenInfo.new(0.3), { BackgroundColor3 = color }):Play()
+            end
+        end
+        -- Círculos de slider
+        for _, c in ipairs(self._accentRefs.circles) do
+            if c and c.Parent then
+                TweenService:Create(c, TweenInfo.new(0.3), { BackgroundColor3 = color }):Play()
+            end
+        end
+        -- Strokes de slider
+        for _, s in ipairs(self._accentRefs.strokes) do
+            if s and s.Parent then
+                TweenService:Create(s, TweenInfo.new(0.3), { Color = color }):Play()
+            end
+        end
+        -- Indicador de tab ativa
+        if self._accentRefs.chooseFrame and self._accentRefs.chooseFrame.Parent then
+            TweenService:Create(self._accentRefs.chooseFrame, TweenInfo.new(0.3), { BackgroundColor3 = color }):Play()
+        end
+        if self._accentRefs.chooseStroke and self._accentRefs.chooseStroke.Parent then
+            TweenService:Create(self._accentRefs.chooseStroke, TweenInfo.new(0.3), { Color = color }):Play()
+        end
+        -- Título da janela
+        TweenService:Create(TextLabel, TweenInfo.new(0.3), { TextColor3 = color }):Play()
+    end
+
+    --- Define a transparência do fundo principal (0 = opaco, 0.95 = quase invisível)
+    --- @param transparency number
+    function Tabs:SetTransparency(transparency)
+        transparency = math.clamp(transparency or 0, 0, 0.95)
+        TweenService:Create(Main,
+            TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            { BackgroundTransparency = transparency }):Play()
+    end
+
+    --- Configurações globais da lib em uma única chamada
+    --- @param config table
+    ---   config.Theme        string   — preset de tema (ex: "midnight")
+    ---   config.AccentColor  Color3   — nova cor de destaque
+    ---   config.Transparency number   — transparência do fundo (0‑0.95)
+    ---   config.ToggleKey    KeyCode  — tecla para mostrar/ocultar (padrão X)
+    ---   config.CloseKey     KeyCode  — tecla para fechar (padrão F4)
+    function Tabs:LibSettings(config)
+        config = config or {}
+        if config.Theme        then self:SetTheme(config.Theme) end
+        if config.AccentColor  then self:SetAccentColor(config.AccentColor) end
+        if config.Transparency then self:SetTransparency(config.Transparency) end
+        if config.ToggleKey    then HotKeys.Toggle = config.ToggleKey end
+        if config.CloseKey     then HotKeys.Close  = config.CloseKey end
     end
 
     return Tabs
