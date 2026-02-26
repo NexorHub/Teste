@@ -1,0 +1,32 @@
+{
+    "_comment": "KAIKEN HUB — Configuração Global",
+
+    "OpenIcon": "rbxassetid://112738695202091",
+
+    "ThemeSelect": "darker",
+
+    "_themes_available": [
+        "darker",
+        "dark",
+        "carbon",
+        "obsidian",
+        "midnight",
+        "navy",
+        "ocean",
+        "teal",
+        "slate",
+        "grape",
+        "rose",
+        "crimson",
+        "bronze",
+        "forest",
+        "ash",
+        "void",
+        "aurora",
+        "ember",
+        "lilac",
+        "storm",
+        "rust",
+        "pine"
+    ]
+}
