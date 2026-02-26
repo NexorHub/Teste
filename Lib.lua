@@ -428,11 +428,12 @@ end
 -- ═══════════════════════════════════════════════════════════════
 --  DRAG MIXIN
 -- ═══════════════════════════════════════════════════════════════
-local function MakeDraggable(win,handle)
+local function MakeDraggable(win,handle,onDrag)
     local drag,ds,sp=false,nil,nil
     handle.InputBegan:Connect(function(i)
         if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
             drag=true; ds=i.Position; sp=win.Position
+            if onDrag then onDrag() end
         end
     end)
     UserInputService.InputEnded:Connect(function(i)
@@ -1278,14 +1279,15 @@ end
 --  Painel flutuante de configurações: tema, transparência, tamanho
 -- ═══════════════════════════════════════════════════════════════
 local function BuildConfigPanel(sg, root, winRef, z)
-    local panW = 260
+    local panW = 270
+    -- Painel vive no ScreenGui para nunca ser cortado pelo ClipsDescendants do root
     local panel = Fr(TH.SurfaceB, 0, "_CfgPanel", z + 30)
-    panel.AnchorPoint = Vector2.new(1, 0)
+    panel.AnchorPoint = Vector2.new(0, 0)
     panel.Size        = UDim2.fromOffset(panW, 0)
-    panel.Position    = UDim2.new(1, -8, 0, 54)  -- relativo ao root
+    panel.Position    = UDim2.fromOffset(0, 0)   -- reposicionado dinamicamente ao abrir
     panel.Visible     = false
     panel.ClipsDescendants = true
-    panel.Parent      = root
+    panel.Parent      = sg
     RC(panel, 10)
     local psk = SK(panel, TH.Cyan, 1.5, 0.2)
     RegAC(psk, "Color", "Cyan")
@@ -1315,8 +1317,9 @@ local function BuildConfigPanel(sg, root, winRef, z)
     local dv1 = Fr(TH.Border, 0, "_Dv1", z + 32); dv1.Size = UDim2.new(1, 0, 0, 1); dv1.Parent = inner
 
     -- ── SEÇÃO: TEMAS ──
-    local themeLbl = Lb("▸  Tema", TH.T2, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
+    local themeLbl = Lb("  Tema de Cores", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
     themeLbl.Size = UDim2.new(1, 0, 0, 16); themeLbl.Parent = inner
+    RegAC(themeLbl, "TextColor3", "TAcc")
 
     -- Grade de swatches: 4 por linha
     local PALETTE_ORDER = {"Cyan","Blue","Purple","Green","Red","Pink","Gold","White"}
@@ -1376,12 +1379,13 @@ local function BuildConfigPanel(sg, root, winRef, z)
     local dv2 = Fr(TH.Border, 0, "_Dv2", z + 32); dv2.Size = UDim2.new(1, 0, 0, 1); dv2.Parent = inner
 
     -- ── SEÇÃO: TRANSPARÊNCIA ──
-    local transpLbl = Lb("▸  Transparência da janela", TH.T2, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
+    local transpLbl = Lb("  Transparencia da janela", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
     transpLbl.Size = UDim2.new(1, 0, 0, 16); transpLbl.Parent = inner
+    RegAC(transpLbl, "TextColor3", "TAcc")
 
     local transpVal = 0  -- 0..80
     -- Mini-slider inline
-    local slW = panW - 28; local SLTRH = 4
+    local slW = panW - 30; local SLTRH = 4
     local slWrap = Fr(TH.Surface, 0, "_SlWr", z + 32)
     slWrap.Size = UDim2.new(1, 0, 0, 28); slWrap.Parent = inner; RC(slWrap, 6); SK(slWrap, TH.Border, 1, 0)
 
@@ -1408,7 +1412,14 @@ local function BuildConfigPanel(sg, root, winRef, z)
         slValLbl.Text = transpVal .. "%"
         if root and root.Parent then
             local tr = transpVal / 100
+            -- Aplica transparência no root e em todos os frames filhos com fundo visível
             Anim.T(root, {BackgroundTransparency = tr}, TH.Fast)
+            for _, child in ipairs(root:GetDescendants()) do
+                if (child:IsA("Frame") or child:IsA("ScrollingFrame"))
+                   and child.BackgroundTransparency < 0.99 then
+                    Anim.T(child, {BackgroundTransparency = tr}, TH.Fast)
+                end
+            end
         end
     end
 
@@ -1431,8 +1442,9 @@ local function BuildConfigPanel(sg, root, winRef, z)
     local dv3 = Fr(TH.Border, 0, "_Dv3", z + 32); dv3.Size = UDim2.new(1, 0, 0, 1); dv3.Parent = inner
 
     -- ── SEÇÃO: TAMANHO ──
-    local sizeLbl = Lb("▸  Tamanho da janela", TH.T2, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
+    local sizeLbl = Lb("  Tamanho da janela", TH.TAcc, SA.FS - 1, TH.FB, Enum.TextXAlignment.Left, z + 32)
     sizeLbl.Size = UDim2.new(1, 0, 0, 16); sizeLbl.Parent = inner
+    RegAC(sizeLbl, "TextColor3", "TAcc")
 
     local SIZE_OPTS = {
         {label="Pequeno",  w=380, h=240},
@@ -1472,9 +1484,22 @@ local function BuildConfigPanel(sg, root, winRef, z)
         panOpen = not panOpen
         if panOpen then
             panel.Visible = true
-            -- calcula altura alvo
+            -- Calcula posição absoluta baseada no root
+            local vp = workspace.CurrentCamera.ViewportSize
+            local rp = root.AbsolutePosition
+            local rs = root.AbsoluteSize
+            -- Tenta posicionar à direita do botão de config (canto superior direito do root)
+            local px = rp.X + rs.X - panW - 4
+            local py = rp.Y + 50
+            -- Garante que o painel não saia da tela horizontalmente
+            px = math.clamp(px, 4, vp.X - panW - 4)
             task.defer(function()
-                local targetH = inner.AbsoluteSize.Y + 2
+                local targetH = inner.AbsoluteSize.Y + 4
+                -- Garante que não saia da tela verticalmente
+                if py + targetH > vp.Y - 4 then
+                    py = math.max(4, vp.Y - targetH - 4)
+                end
+                panel.Position = UDim2.fromOffset(px, py)
                 Anim.T(panel, {Size = UDim2.fromOffset(panW, targetH)}, TH.Elastic)
             end)
         else
@@ -1536,10 +1561,10 @@ local function BuildWindow(opts,sg)
     ctrlRow.Size=UDim2.fromOffset(82,TBH); ctrlRow.Parent=titleBar
     LH(ctrlRow,5,Enum.HorizontalAlignment.Right,Enum.VerticalAlignment.Center)
     local function CtrlBtn(iconKey,hoverCol)
-        local cb=IB(TH.T3,z+4); cb.Size=UDim2.fromOffset(16,16); cb.BackgroundColor3=TH.Surface; cb.Parent=ctrlRow
-        RC(cb,4); Icons.Apply(iconKey,cb)
-        cb.MouseEnter:Connect(function() Anim.T(cb,{BackgroundColor3=hoverCol,ImageColor3=Color3.new(1,1,1)},TH.Fast) end)
-        cb.MouseLeave:Connect(function() Anim.T(cb,{BackgroundColor3=TH.Surface,ImageColor3=TH.T3},TH.Fast) end)
+        local cb=IB(TH.T3,z+4); cb.Size=UDim2.fromOffset(18,18); cb.BackgroundTransparency=1; cb.Parent=ctrlRow
+        RC(cb,5); Icons.Apply(iconKey,cb)
+        cb.MouseEnter:Connect(function() Anim.T(cb,{BackgroundTransparency=0,BackgroundColor3=hoverCol,ImageColor3=Color3.new(1,1,1)},TH.Fast) end)
+        cb.MouseLeave:Connect(function() Anim.T(cb,{BackgroundTransparency=1,ImageColor3=TH.T3},TH.Fast) end)
         return cb
     end
     local winRef = {W=wW, H=wH}
@@ -1572,7 +1597,9 @@ local function BuildWindow(opts,sg)
     RC(body,10)
     local tabSys=BuildTabSystem(body,tabScroll,z+2)
     -- Drag
-    MakeDraggable(root,titleBar)
+    MakeDraggable(root,titleBar,function()
+        if _cfgPanel and _cfgPanel.Visible then _toggleCfg() end
+    end)
     -- Min / Close
     local minimized=false
     minBtn.MouseButton1Click:Connect(function()
