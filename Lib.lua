@@ -193,12 +193,12 @@ local function MakeDraggable(topbarobject, object)
     CustomPos(topbarobject, object)
 end
 
-function CircleClick(Button, X, Y)
+function CircleClick(Button, X, Y, ClickColor)
     spawn(function()
         Button.ClipsDescendants = true
         local Circle = Instance.new("ImageLabel")
         Circle.Image = "rbxassetid://266543268"
-        Circle.ImageColor3 = Color3.fromRGB(255, 105, 180)
+        Circle.ImageColor3 = ClickColor or Color3.fromRGB(200, 200, 200)
         Circle.ImageTransparency = 0.8999999761581421
         Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         Circle.BackgroundTransparency = 1
@@ -235,7 +235,7 @@ function BastardXHub:MakeNotify(NotifyConfig)
     NotifyConfig.Title = NotifyConfig.Title or "KAIKEN LIB"
     NotifyConfig.Description = NotifyConfig.Description or "Notification"
     NotifyConfig.Content = NotifyConfig.Content or "Content"
-    NotifyConfig.Color = NotifyConfig.Color or Color3.fromRGB(255, 105, 180)
+    NotifyConfig.Color = NotifyConfig.Color or Color3.fromRGB(255, 255, 255)
     NotifyConfig.Time = NotifyConfig.Time or 0.5
     NotifyConfig.Delay = NotifyConfig.Delay or 5
     local NotifyFunction = {}
@@ -433,7 +433,7 @@ function bastardxhub(msg, delay, color, title, desc)
         Title = title or "KAIKEN LIB",
         Description = desc or "Notification",
         Content = msg or "Content",
-        Color = color or Color3.fromRGB(255, 105, 180),
+        Color = color or Color3.fromRGB(255, 255, 255),
         Delay = delay or 4
     })
 end
@@ -441,7 +441,7 @@ end
 function BastardXHub:Window(GuiConfig)
     GuiConfig              = GuiConfig or {}
     GuiConfig.Title        = GuiConfig.Title or "KAIKEN LIB"
-    GuiConfig.Color        = GuiConfig.Color or Color3.fromRGB(255, 105, 180)
+    GuiConfig.Color        = GuiConfig.Color or Color3.fromRGB(255, 255, 255)
     GuiConfig["Tab Width"] = GuiConfig["Tab Width"] or 120
     GuiConfig.Version      = GuiConfig.Version or 1
 
@@ -529,7 +529,7 @@ function BastardXHub:Window(GuiConfig)
         ash      = Color3.fromRGB(14,  14,  16),   -- cinza-azulado neutro
         void     = Color3.fromRGB(0,   0,   0),    -- preto absoluto
         aurora   = Color3.fromRGB(4,   20,  16),   -- verde-teal escuro
-        ember    = Color3.fromRGB(24,  8,   2),    -- laranja-brasa escuro
+        ember    = Color3.fromRGB(24,  8,   2),    -- laranja-brasa
         lilac    = Color3.fromRGB(16,  6,   22),   -- púrpura-rosa escuro
         storm    = Color3.fromRGB(8,   10,  20),   -- azul-tempestade
         rust     = Color3.fromRGB(22,  9,   4),    -- ferrugem escuro
@@ -749,7 +749,7 @@ function BastardXHub:Window(GuiConfig)
     local _fullSizeRef  = nil   -- guardado após MakeDraggable definir o tamanho
 
     Min.Activated:Connect(function()
-        CircleClick(Min, Mouse.X, Mouse.Y)
+        CircleClick(Min, Mouse.X, Mouse.Y, GuiConfig.Color)
         _isMinimized = not _isMinimized
 
         if _isMinimized then
@@ -786,7 +786,7 @@ function BastardXHub:Window(GuiConfig)
         end
     end)
     Close.Activated:Connect(function()
-        CircleClick(Close, Mouse.X, Mouse.Y)
+        CircleClick(Close, Mouse.X, Mouse.Y, GuiConfig.Color)
 
         local Overlay = Instance.new("Frame")
         Overlay.Size = UDim2.new(1, 0, 1, 0)
@@ -819,12 +819,18 @@ function BastardXHub:Window(GuiConfig)
         GlowCorner.CornerRadius = UDim.new(0, 10)
 
         local Gradient = Instance.new("UIGradient")
+        local _glowLight = GuiConfig.Color
+        local _glowDark  = Color3.fromRGB(
+            math.floor(GuiConfig.Color.R * 180),
+            math.floor(GuiConfig.Color.G * 180),
+            math.floor(GuiConfig.Color.B * 180)
+        )
         Gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0.0, Color3.fromRGB(255, 105, 180)),
-            ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 182, 193)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 105, 180)),
-            ColorSequenceKeypoint.new(0.75, Color3.fromRGB(255, 182, 193)),
-            ColorSequenceKeypoint.new(1.0, Color3.fromRGB(255, 105, 180))
+            ColorSequenceKeypoint.new(0.0,  _glowLight),
+            ColorSequenceKeypoint.new(0.25, _glowDark),
+            ColorSequenceKeypoint.new(0.5,  _glowLight),
+            ColorSequenceKeypoint.new(0.75, _glowDark),
+            ColorSequenceKeypoint.new(1.0,  _glowLight),
         })
         Gradient.Rotation = 90
         Gradient.Parent = DialogGlow
@@ -997,13 +1003,13 @@ function BastardXHub:Window(GuiConfig)
     UICorner36.CornerRadius = UDim.new(0, 3)
     UICorner36.Parent = DropdownSelect
 
-    UIStroke14.Color = Color3.fromRGB(255, 105, 180)
+    UIStroke14.Color = GuiConfig.Color
     UIStroke14.Thickness = 2.5
     UIStroke14.Transparency = 0.8
     UIStroke14.Parent = DropdownSelect
 
     DropdownSelectReal.AnchorPoint = Vector2.new(0.5, 0.5)
-    DropdownSelectReal.BackgroundColor3 = Color3.fromRGB(98, 0, 57)
+    DropdownSelectReal.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     DropdownSelectReal.BackgroundTransparency = 0.7
     DropdownSelectReal.BorderColor3 = Color3.fromRGB(0, 0, 0)
     DropdownSelectReal.BorderSizePixel = 0
@@ -1037,6 +1043,9 @@ function BastardXHub:Window(GuiConfig)
         chooseFrame  = nil,  -- Tab indicator bar
         chooseStroke = nil,  -- Tab indicator stroke
     }
+    -- UIStroke14 é o borde do painel de dropdown — criado antes dos Tabs,
+    -- mas registrado aqui para ser atualizado pelo SetAccentColor.
+    table.insert(Tabs._accentRefs.strokes, UIStroke14)
     local CountTab = 0
     local CountDropdown = 0
     function Tabs:AddTab(TabConfig)
@@ -1152,7 +1161,7 @@ function BastardXHub:Window(GuiConfig)
         end
 
         TabButton.Activated:Connect(function()
-            CircleClick(TabButton, Mouse.X, Mouse.Y)
+            CircleClick(TabButton, Mouse.X, Mouse.Y, GuiConfig.Color)
             local FrameChoose
             for a, s in ScrollTab:GetChildren() do
                 for i, v in s:GetChildren() do
@@ -1379,7 +1388,7 @@ function BastardXHub:Window(GuiConfig)
 
             if AlwaysOpen ~= true then
                 SectionButton.Activated:Connect(function()
-                    CircleClick(SectionButton, Mouse.X, Mouse.Y)
+                    CircleClick(SectionButton, Mouse.X, Mouse.Y, GuiConfig.Color)
                     if OpenSection then
                         TweenService:Create(FeatureFrame, TweenInfo.new(0.5), { Rotation = 0 }):Play()
                         TweenService:Create(Section, TweenInfo.new(0.5), { Size = UDim2.new(1, 1, 0, 30) }):Play()
@@ -2736,7 +2745,7 @@ function BastardXHub:Window(GuiConfig)
             function Items:AddColorPicker(ColorConfig)
                 ColorConfig          = ColorConfig or {}
                 ColorConfig.Title    = ColorConfig.Title    or "Color Picker"
-                ColorConfig.Default  = ColorConfig.Default  or Color3.fromRGB(255, 105, 180)
+                ColorConfig.Default  = ColorConfig.Default  or Color3.fromRGB(255, 255, 255)
                 ColorConfig.Callback = ColorConfig.Callback or function() end
 
                 local configKey = "ColorPicker_" .. ColorConfig.Title
