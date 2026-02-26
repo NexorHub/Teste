@@ -1,10 +1,10 @@
 local HttpService = game:GetService("HttpService")
 
-if not isfolder("Bastard X Hub") then
-    makefolder("Bastard X Hub")
+if not isfolder("KAIKEN LIB") then
+    makefolder("KAIKEN LIB")
 end
-if not isfolder("Bastard X Hub/Config") then
-    makefolder("Bastard X Hub/Config")
+if not isfolder("KAIKEN LIB/Config") then
+    makefolder("KAIKEN LIB/Config")
 end
 
 local _ok, _info = pcall(function()
@@ -15,7 +15,7 @@ gameName         = gameName:gsub("[^%w_ ]", "")
 gameName         = gameName:gsub("%s+", "_")
 if gameName == "" then gameName = "UnknownGame" end
 
-local ConfigFile = "Bastard X Hub/Config/Bastard_" .. gameName .. ".json"
+local ConfigFile = "KAIKEN LIB/Config/Bastard_" .. gameName .. ".json"
 
 ConfigData       = {}
 Elements         = {}
@@ -232,7 +232,7 @@ end
 local BastardXHub = {}
 function BastardXHub:MakeNotify(NotifyConfig)
     local NotifyConfig = NotifyConfig or {}
-    NotifyConfig.Title = NotifyConfig.Title or "Bastard X Hub"
+    NotifyConfig.Title = NotifyConfig.Title or "KAIKEN LIB"
     NotifyConfig.Description = NotifyConfig.Description or "Notification"
     NotifyConfig.Content = NotifyConfig.Content or "Content"
     NotifyConfig.Color = NotifyConfig.Color or Color3.fromRGB(255, 105, 180)
@@ -430,7 +430,7 @@ end
 
 function bastardxhub(msg, delay, color, title, desc)
     return BastardXHub:MakeNotify({
-        Title = title or "Bastard X Hub",
+        Title = title or "KAIKEN LIB",
         Description = desc or "Notification",
         Content = msg or "Content",
         Color = color or Color3.fromRGB(255, 105, 180),
@@ -440,7 +440,7 @@ end
 
 function BastardXHub:Window(GuiConfig)
     GuiConfig              = GuiConfig or {}
-    GuiConfig.Title        = GuiConfig.Title or "Bastard X Hub"
+    GuiConfig.Title        = GuiConfig.Title or "KAIKEN LIB"
     GuiConfig.Color        = GuiConfig.Color or Color3.fromRGB(255, 105, 180)
     GuiConfig["Tab Width"] = GuiConfig["Tab Width"] or 120
     GuiConfig.Version      = GuiConfig.Version or 1
@@ -825,7 +825,7 @@ function BastardXHub:Window(GuiConfig)
         Title.Position = UDim2.new(0, 0, 0, 4)
         Title.BackgroundTransparency = 1
         Title.Font = Enum.Font.GothamBold
-        Title.Text = "Bastard X Hub Window"
+        Title.Text = "KAIKEN LIB Window"
         Title.TextSize = 22
         Title.TextColor3 = Color3.fromRGB(255, 255, 255)
         Title.ZIndex = 52
