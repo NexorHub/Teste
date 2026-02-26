@@ -1227,7 +1227,9 @@ function BastardXHub:Window(GuiConfig)
         end
         Tab.BorderColor3 = Color3.fromRGB(0, 0, 0)
         Tab.BorderSizePixel = 0
-        Tab.LayoutOrder = CountTab
+        -- Se a tab se chama "⚙ Config", força LayoutOrder altíssimo para ficar sempre por último
+        Tab.LayoutOrder = (TabConfig.Name == "⚙ Config") and 9999 or CountTab
+        ScrolLayers.LayoutOrder = (TabConfig.Name == "⚙ Config") and 9999 or CountTab
         Tab.Size = UDim2.new(1, 0, 0, 30)
         Tab.Name = "Tab"
         Tab.Parent = ScrollTab
@@ -2837,8 +2839,12 @@ function BastardXHub:Window(GuiConfig)
 
     -- ╔══════════════════════════════════════════╗
     -- ║       BASTARD X HUB - CONFIG TAB         ║
+    -- ║  (deferred: sempre aparece por último)   ║
     -- ╚══════════════════════════════════════════╝
-    do
+    -- Usa task.defer para rodar DEPOIS que o usuário adicionar todas as suas tabs,
+    -- garantindo que ⚙ Config seja sempre a última da lista.
+    task.spawn(function()
+        task.wait() -- aguarda um frame para o usuário terminar de adicionar as tabs
         local themeNames = {}
         for k, _ in pairs(Themes) do
             table.insert(themeNames, k)
@@ -2848,7 +2854,7 @@ function BastardXHub:Window(GuiConfig)
         local ConfigSections = Tabs:AddTab({ Name = "⚙ Config", Icon = "settings" })
         local CfgSection = ConfigSections:AddSection("Interface Settings", true)
 
-        -- Theme Dropdown
+        -- Tema
         CfgSection:AddDropdown({
             Name   = "Theme",
             Flag   = "_BXH_Theme",
@@ -2860,7 +2866,6 @@ function BastardXHub:Window(GuiConfig)
                 GuiConfig.Color = ActiveTheme.AccentColor
                 Main.BackgroundColor3 = ActiveTheme.BackgroundColor
 
-                -- Update accent color on ChooseFrames and strokes
                 for _, child in Main:GetDescendants() do
                     if child:IsA("Frame") and child.Name == "ChooseFrame" then
                         child.BackgroundColor3 = ActiveTheme.AccentColor
@@ -2869,18 +2874,19 @@ function BastardXHub:Window(GuiConfig)
                     end
                     if child:IsA("UIGradient") and child.Parent and child.Parent.Name == "SectionDecideFrame" then
                         child.Color = ColorSequence.new {
-                            ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 20)),
+                            ColorSequenceKeypoint.new(0,   Color3.fromRGB(20, 20, 20)),
                             ColorSequenceKeypoint.new(0.5, ActiveTheme.AccentColor),
-                            ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+                            ColorSequenceKeypoint.new(1,   Color3.fromRGB(20, 20, 20))
                         }
                     end
                 end
+
                 ConfigData["_BXH_Theme"] = selected
                 SaveConfig()
             end
         })
 
-        -- Transparency Slider
+        -- Transparência (0–90%)
         CfgSection:AddSlider({
             Name    = "Background Transparency",
             Flag    = "_BXH_Transparency",
@@ -2895,6 +2901,7 @@ function BastardXHub:Window(GuiConfig)
             end
         })
 
+        -- Tamanho da janela
         local SizeSection = ConfigSections:AddSection("Window Size", true)
         SizeSection:AddDropdown({
             Name  = "Size Preset",
@@ -2921,11 +2928,12 @@ function BastardXHub:Window(GuiConfig)
             end
         })
 
+        -- Sobre
         local InfoSection = ConfigSections:AddSection("About", true)
         InfoSection:AddLabel("Bastard X Hub")
         InfoSection:AddLabel("Icons via github.com/NexorHub/Teste")
         InfoSection:AddLabel("Active theme: " .. ActiveTheme.Name)
-    end
+    end)
 
     return Tabs
 end
