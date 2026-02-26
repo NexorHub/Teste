@@ -834,9 +834,9 @@ function BastardXHub:Window(GuiConfig)
 
         Yes.MouseButton1Click:Connect(function()
             if BastardXHub then BastardXHub:Destroy() end
-            if game.CoreGui:FindFirstChild("ToggleUIButton") then
-                game.CoreGui.ToggleUIButton:Destroy()
-            end
+            -- Destroi o botão flutuante se existir
+            local fb = game.CoreGui:FindFirstChild("BastardFloatBtn")
+            if fb then fb:Destroy() end
         end)
 
         Cancel.MouseButton1Click:Connect(function()
@@ -855,77 +855,11 @@ function BastardXHub:Window(GuiConfig)
         elseif input.KeyCode == CloseKey then
             if BastardXHub then
                 BastardXHub:Destroy()
-                if game.CoreGui:FindFirstChild("ToggleUIButton") then
-                    game.CoreGui.ToggleUIButton:Destroy()
-                end
+                local fb = game.CoreGui:FindFirstChild("BastardFloatBtn")
+                if fb then fb:Destroy() end
             end
         end
     end)
-
-    function GuiFunc:ToggleUI()
-        local ScreenGui = Instance.new("ScreenGui")
-        ScreenGui.Parent = game:GetService("CoreGui")
-        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        ScreenGui.Name = "ToggleUIButton"
-
-        local MainButton = Instance.new("ImageLabel")
-        MainButton.Parent = ScreenGui
-        MainButton.Size = UDim2.new(0, 40, 0, 40)
-        MainButton.Position = UDim2.new(0, 20, 0, 100)
-        MainButton.BackgroundTransparency = 1
-        MainButton.Image = "rbxassetid://" .. (GuiConfig.Image or "137601480983962")
-        MainButton.ScaleType = Enum.ScaleType.Fit
-
-        local UICorner = Instance.new("UICorner")
-        UICorner.CornerRadius = UDim.new(0, 6)
-        UICorner.Parent = MainButton
-
-        local Button = Instance.new("TextButton")
-        Button.Parent = MainButton
-        Button.Size = UDim2.new(1, 0, 1, 0)
-        Button.BackgroundTransparency = 1
-        Button.Text = ""
-
-        Button.MouseButton1Click:Connect(function()
-            if DropShadowHolder then
-                DropShadowHolder.Visible = not DropShadowHolder.Visible
-            end
-        end)
-
-        local dragging = false
-        local dragStart, startPos
-
-        local function update(input)
-            local delta = input.Position - dragStart
-            MainButton.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-
-        Button.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                dragStart = input.Position
-                startPos = MainButton.Position
-                input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
-                        dragging = false
-                    end
-                end)
-            end
-        end)
-
-        game:GetService("UserInputService").InputChanged:Connect(function(input)
-            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                update(input)
-            end
-        end)
-    end
-
-    GuiFunc:ToggleUI()
 
     DropShadowHolder.Size = UDim2.new(0, 115 + TextLabel.TextBounds.X + 1 + TextLabel1.TextBounds.X, 0, 350)
     MakeDraggable(Top, DropShadowHolder)
@@ -1041,6 +975,7 @@ function BastardXHub:Window(GuiConfig)
     DropPageLayout.Parent = DropdownFolder
     --// Tabs
     local Tabs = {}
+    Tabs._holder = DropShadowHolder   -- expõe o frame principal para FloatBtn fazer toggle
     local CountTab = 0
     local CountDropdown = 0
     function Tabs:AddTab(TabConfig)
@@ -2693,218 +2628,199 @@ function BastardXHub:Window(GuiConfig)
     return Tabs
 end
 
--- ╔══════════════════════════════════════════════════════╗
--- ║              BOTÃO FLUTUANTE (FloatBtn)              ║
--- ╚══════════════════════════════════════════════════════╝
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║  BOTÃO FLUTUANTE — cópia fiel do FloatBtn do Nexus UI        ║
+-- ║  • Arredondado  • Pulsativo  • Drag  • Toggle correto        ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
+-- Utilitários internos (espelho dos helpers do Nexus UI)
+local function _RC(p, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r or 8)
+    c.Parent = p; return c
+end
+local function _SK(p, col, th2, tr)
+    local s = Instance.new("UIStroke")
+    s.Color = col or Color3.fromRGB(40,40,40)
+    s.Thickness = th2 or 1
+    s.Transparency = tr or 0
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.Parent = p; return s
+end
+local function _AnimT(inst, props, ti)
+    local t = TweenService:Create(inst, ti or TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props)
+    t:Play(); return t
+end
+
 function BastardXHub:FloatBtn(FloatConfig)
     FloatConfig          = FloatConfig or {}
-    FloatConfig.Icon     = FloatConfig.Icon or "eye"
-    FloatConfig.Color    = FloatConfig.Color or Color3.fromRGB(255, 255, 255)
-    FloatConfig.Size     = FloatConfig.Size or 46
-    FloatConfig.Position = FloatConfig.Position or UDim2.new(0, 20, 0.5, -23)
-    FloatConfig.Callback = FloatConfig.Callback or function() end
-    FloatConfig.CornerRadius = FloatConfig.CornerRadius or 10
+    local iconNameOrId   = FloatConfig.Icon     or "rbxassetid://112738695202091"
+    local accentColor    = FloatConfig.Color    or Color3.fromRGB(255, 255, 255)
+    local accentDark     = FloatConfig.ColorDark or Color3.fromRGB(180, 180, 180)
+    local surfaceB       = Color3.fromRGB(18, 18, 18)
+    local S              = FloatConfig.Size or 46
 
-    local S = FloatConfig.Size
+    -- ── ScreenGui dedicado
+    local sg = Instance.new("ScreenGui")
+    sg.Name           = "BastardFloatBtn"
+    sg.ResetOnSpawn   = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.DisplayOrder   = 9999
+    sg.IgnoreGuiInset = true
+    sg.Parent         = game:GetService("CoreGui")
 
-    local FloatGui = Instance.new("ScreenGui")
-    FloatGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
-    FloatGui.Name            = "BastardFloatBtn"
-    FloatGui.ResetOnSpawn    = false
-    FloatGui.Parent          = game:GetService("CoreGui")
+    -- ── Ring pulsativo (fica ATRÁS do botão, ZIndex menor)
+    local ring = Instance.new("Frame")
+    ring.Name                   = "_Ring"
+    ring.BackgroundColor3       = accentColor
+    ring.BackgroundTransparency = 0.55
+    ring.BorderSizePixel        = 0
+    ring.AnchorPoint            = Vector2.new(0.5, 0.5)
+    ring.Position               = UDim2.new(0.05, 0, 0.5, 0)
+    ring.Size                   = UDim2.fromOffset(S + 14, S + 14)
+    ring.ZIndex                 = 298
+    ring.Parent                 = sg
+    -- Círculo perfeito no ring
+    local ringCorner = Instance.new("UICorner")
+    ringCorner.CornerRadius = UDim.new(0, 999)
+    ringCorner.Parent = ring
 
-    -- Anel de pulso (atrás do botão)
-    local Ring = Instance.new("Frame")
-    Ring.Name                    = "_Ring"
-    Ring.BackgroundColor3        = FloatConfig.Color
-    Ring.BackgroundTransparency  = 0.55
-    Ring.BorderSizePixel         = 0
-    Ring.AnchorPoint             = Vector2.new(0.5, 0.5)
-    Ring.Position                = FloatConfig.Position
-    Ring.Size                    = UDim2.fromOffset(S + 14, S + 14)
-    Ring.ZIndex                  = 98
-    Ring.Parent                  = FloatGui
-    local RingCorner = Instance.new("UICorner")
-    RingCorner.CornerRadius = UDim.new(0, FloatConfig.CornerRadius + 6)
-    RingCorner.Parent = Ring
+    -- ── Botão principal — ImageButton que é também o ícone (padrão Nexus)
+    local fb = Instance.new("ImageButton")
+    fb.Name                 = "_FloatBtn"
+    fb.AnchorPoint          = Vector2.new(0.5, 0.5)
+    fb.Position             = UDim2.new(0.05, 0, 0.5, 0)
+    fb.Size                 = UDim2.fromOffset(S, S)
+    fb.BackgroundColor3     = accentDark
+    fb.BackgroundTransparency = 0
+    fb.BorderSizePixel      = 0
+    fb.AutoButtonColor      = false
+    fb.Image                = ""
+    fb.ImageColor3          = Color3.new(1, 1, 1)   -- branco puro: preserva cores do PNG
+    fb.ScaleType            = Enum.ScaleType.Fit
+    fb.ZIndex               = 300
+    fb.Parent               = sg
+    -- Círculo perfeito no botão
+    _RC(fb, S / 2)
+    -- Borda colorida
+    local fbStroke = _SK(fb, accentColor, 1.5, 0)
 
-    -- Botão principal: é um ImageButton que TAMBÉM serve de ícone (como o Nexus faz)
-    -- O ícone é aplicado diretamente na Image do ImageButton — sem filho separado
-    local Btn = Instance.new("ImageButton")
-    Btn.Name                 = "_FloatBtn"
-    Btn.AnchorPoint          = Vector2.new(0.5, 0.5)
-    Btn.Position             = FloatConfig.Position
-    Btn.Size                 = UDim2.fromOffset(S, S)
-    Btn.BackgroundColor3     = Color3.fromRGB(14, 14, 14)
-    Btn.BorderSizePixel      = 0
-    Btn.AutoButtonColor      = false
-    -- O ícone ocupa o botão inteiro, com padding interno para não encostar nas bordas
-    Btn.Image                = ""          -- será preenchido pelo Icons.Apply
-    Btn.ImageColor3          = Color3.new(1, 1, 1)  -- branco = sem tint, preserva o PNG
-    Btn.ScaleType            = Enum.ScaleType.Fit
-    Btn.ZIndex               = 100
-    Btn.Parent               = FloatGui
+    -- Padding interno: ícone não encosta na borda
+    local fbPad = Instance.new("UIPadding")
+    fbPad.PaddingTop    = UDim.new(0, 9)
+    fbPad.PaddingBottom = UDim.new(0, 9)
+    fbPad.PaddingLeft   = UDim.new(0, 9)
+    fbPad.PaddingRight  = UDim.new(0, 9)
+    fbPad.Parent = fb
 
-    -- Bordas arredondadas quadradas
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, FloatConfig.CornerRadius)
-    BtnCorner.Parent = Btn
-
-    -- Padding interno: garante que o ícone não encoste nas bordas do botão
-    local BtnPad = Instance.new("UIPadding")
-    BtnPad.PaddingTop    = UDim.new(0, 10)
-    BtnPad.PaddingBottom = UDim.new(0, 10)
-    BtnPad.PaddingLeft   = UDim.new(0, 10)
-    BtnPad.PaddingRight  = UDim.new(0, 10)
-    BtnPad.Parent = Btn
-
-    -- Borda (stroke)
-    local BtnStroke = Instance.new("UIStroke")
-    BtnStroke.Color        = FloatConfig.Color
-    BtnStroke.Thickness    = 1.5
-    BtnStroke.Transparency = 0.35
-    BtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    BtnStroke.Parent = Btn
-
-    -- Sombra
-    local Shad = Instance.new("ImageLabel")
-    Shad.Name                = "_Shadow"
-    Shad.BackgroundTransparency = 1
-    Shad.AnchorPoint         = Vector2.new(0.5, 0.5)
-    Shad.Position            = UDim2.new(0.5, 0, 0.5, 6)
-    Shad.Size                = UDim2.new(1, 28, 1, 28)
-    Shad.Image               = "rbxassetid://6014261993"
-    Shad.ImageColor3         = FloatConfig.Color
-    Shad.ImageTransparency   = 0.82
-    Shad.ScaleType           = Enum.ScaleType.Slice
-    Shad.SliceCenter         = Rect.new(49, 49, 450, 450)
-    Shad.ZIndex              = 99
-    Shad.Parent              = Btn
-
-    -- Aplica ícone: nome do Icons.lua OU rbxassetid:// OU número puro
-    local function ApplyIcon(iconVal)
-        local v = tostring(iconVal or "")
+    -- ── Aplica ícone direto no ImageButton (igual Nexus UI)
+    local function ApplyIcon(v)
+        v = tostring(v or "")
         if v:match("^rbxassetid://") then
-            Btn.Image = v
+            fb.Image = v
         elseif v:match("^%d+$") then
-            Btn.Image = "rbxassetid://" .. v
+            fb.Image = "rbxassetid://" .. v
         elseif Icons and Icons[v] then
-            Btn.Image = Icons[v]
+            fb.Image = Icons[v]
         else
-            -- fallback: tenta carregar assincronamente (ícone por nome com carregamento lazy)
             task.spawn(function()
                 local ok, res = pcall(function()
                     return loadstring(game:HttpGet(
                         "https://raw.githubusercontent.com/NexorHub/Teste/refs/heads/main/Icons.lua"
                     ))()
                 end)
-                if ok and res and res[v] then
+                if ok and res and res[v] and fb and fb.Parent then
                     Icons = res
-                    if Btn and Btn.Parent then Btn.Image = res[v] end
+                    fb.Image = res[v]
                 end
             end)
         end
     end
-    ApplyIcon(FloatConfig.Icon)
+    ApplyIcon(iconNameOrId)
 
-    -- Animação de pulso no ring
+    -- ── Pulso animado no ring (idêntico ao Nexus UI)
+    local toggled = true
     task.spawn(function()
-        while Ring and Ring.Parent do
-            TweenService:Create(Ring,
-                TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundTransparency = 0.85, Size = UDim2.fromOffset(S + 26, S + 26) }
-            ):Play()
+        while ring and ring.Parent do
+            _AnimT(ring,
+                { BackgroundTransparency = 0.85, Size = UDim2.fromOffset(S + 26, S + 26) },
+                TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut))
             task.wait(1.2)
-            TweenService:Create(Ring,
-                TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-                { BackgroundTransparency = 0.40, Size = UDim2.fromOffset(S + 8,  S + 8) }
-            ):Play()
+            _AnimT(ring,
+                { BackgroundTransparency = 0.40, Size = UDim2.fromOffset(S + 8, S + 8) },
+                TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut))
             task.wait(1.2)
         end
     end)
 
-    -- Hover
-    Btn.MouseEnter:Connect(function()
-        TweenService:Create(BtnStroke, TweenInfo.new(0.18), { Transparency = 0 }):Play()
-        TweenService:Create(Btn, TweenInfo.new(0.18), { BackgroundColor3 = Color3.fromRGB(22, 22, 22) }):Play()
-    end)
-    Btn.MouseLeave:Connect(function()
-        TweenService:Create(BtnStroke, TweenInfo.new(0.22), { Transparency = 0.35 }):Play()
-        TweenService:Create(Btn, TweenInfo.new(0.22), { BackgroundColor3 = Color3.fromRGB(14, 14, 14) }):Play()
-    end)
-
-    -- Drag: move Btn e Ring juntos
+    -- ── Drag: move fb E ring juntos (com detecção de movimento para não confundir com clique)
     local drag, ds, sp, moved = false, nil, nil, false
-    Btn.InputBegan:Connect(function(i)
+    fb.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1
             or i.UserInputType == Enum.UserInputType.Touch then
-            drag = true; ds = i.Position; sp = Btn.Position; moved = false
+            drag = true; ds = i.Position; sp = fb.Position; moved = false
         end
     end)
     UserInputService.InputEnded:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1
-            or i.UserInputType == Enum.UserInputType.Touch then drag = false end
+            or i.UserInputType == Enum.UserInputType.Touch then
+            drag = false
+        end
     end)
     UserInputService.InputChanged:Connect(function(i)
         if drag and (i.UserInputType == Enum.UserInputType.MouseMovement
             or i.UserInputType == Enum.UserInputType.Touch) then
             local d = i.Position - ds
             if d.Magnitude > 4 then moved = true end
-            local np = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
-            Btn.Position  = np
-            Ring.Position = np
+            local np = UDim2.new(sp.X.Scale, sp.X.Offset + d.X,
+                                 sp.Y.Scale, sp.Y.Offset + d.Y)
+            fb.Position   = np
+            ring.Position = np
         end
     end)
 
-    -- Click: toggle + bounce + ripple
-    local toggled = true
-    Btn.MouseButton1Click:Connect(function()
+    -- ── Click: toggle UI + micro-bounce (idêntico ao Nexus UI)
+    fb.MouseButton1Click:Connect(function()
         if moved then return end
         toggled = not toggled
 
-        -- Ripple
-        local mp = game:GetService("UserInputService"):GetMouseLocation()
-        local lx = mp.X - Btn.AbsolutePosition.X
-        local ly = mp.Y - Btn.AbsolutePosition.Y
-        local rp = Instance.new("Frame")
-        rp.AnchorPoint = Vector2.new(0.5, 0.5)
-        rp.BackgroundColor3 = FloatConfig.Color
-        rp.BackgroundTransparency = 0.7
-        rp.BorderSizePixel = 0
-        rp.Position = UDim2.fromOffset(lx, ly)
-        rp.Size = UDim2.fromOffset(0, 0)
-        rp.ZIndex = 101
-        rp.Parent = Btn
-        local rpc = Instance.new("UICorner"); rpc.CornerRadius = UDim.new(0, FloatConfig.CornerRadius); rpc.Parent = rp
-        local rpt = TweenService:Create(rp,
-            TweenInfo.new(0.45, Enum.EasingStyle.Quint),
-            { Size = UDim2.fromOffset(S * 2.4, S * 2.4), BackgroundTransparency = 1 })
-        rpt:Play(); rpt.Completed:Connect(function() rp:Destroy() end)
+        -- Fundo: accentDark quando visível, surfaceB quando oculto
+        _AnimT(fb, { BackgroundColor3 = toggled and accentDark or surfaceB },
+            TweenInfo.new(0.10, Enum.EasingStyle.Quint, Enum.EasingDirection.Out))
 
-        -- Bounce
-        TweenService:Create(Btn, TweenInfo.new(0.10, Enum.EasingStyle.Quad), { Size = UDim2.fromOffset(S - 5, S - 5) }):Play()
+        -- Bounce: encolhe e volta com elastic
+        _AnimT(fb, { Size = UDim2.fromOffset(S - 4, S - 4) },
+            TweenInfo.new(0.10, Enum.EasingStyle.Quint, Enum.EasingDirection.Out))
         task.delay(0.10, function()
-            TweenService:Create(Btn, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(S, S) }):Play()
+            _AnimT(fb, { Size = UDim2.fromOffset(S, S) },
+                TweenInfo.new(0.46, Enum.EasingStyle.Back, Enum.EasingDirection.Out))
         end)
 
-        FloatConfig.Callback(toggled)
+        -- ← TOGGLE CORRETO: mostra/esconde o DropShadowHolder da janela principal
+        if FloatConfig.MainHolder then
+            FloatConfig.MainHolder.Visible = toggled
+        end
+        -- Callback extra (opcional)
+        if FloatConfig.Callback then
+            task.spawn(FloatConfig.Callback, toggled)
+        end
     end)
 
     local FloatFunc = {}
 
-    function FloatFunc:SetIcon(iconVal)
-        ApplyIcon(iconVal)
-    end
+    function FloatFunc:SetIcon(v) ApplyIcon(v) end
 
-    function FloatFunc:SetColor(color)
-        FloatConfig.Color = color
-        TweenService:Create(BtnStroke, TweenInfo.new(0.3), { Color = color }):Play()
-        TweenService:Create(Ring,      TweenInfo.new(0.3), { BackgroundColor3 = color }):Play()
-        TweenService:Create(Shad,      TweenInfo.new(0.3), { ImageColor3 = color }):Play()
+    function FloatFunc:SetColor(col, colDark)
+        accentColor = col; accentDark = colDark or col
+        _AnimT(fbStroke, { Color = col }, TweenInfo.new(0.3))
+        _AnimT(ring, { BackgroundColor3 = col }, TweenInfo.new(0.3))
+        if toggled then
+            _AnimT(fb, { BackgroundColor3 = accentDark }, TweenInfo.new(0.3))
+        end
     end
 
     function FloatFunc:Destroy()
-        FloatGui:Destroy()
+        sg:Destroy()
     end
 
     return FloatFunc
