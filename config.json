@@ -3,7 +3,10 @@
 
     "OpenIcon": "rbxassetid://112738695202091",
 
-    "ThemeSelect": "bronze",
+    "ThemeSelect": "darker",
+
+    "SoundId": "rbxassetid://125061692545569",
+    "SoundVolume": 1,
 
     "_themes_available": [
         "darker",
