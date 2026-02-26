@@ -437,7 +437,7 @@ end
 function BastardXHub:Window(GuiConfig)
     GuiConfig              = GuiConfig or {}
     GuiConfig.Title        = GuiConfig.Title or "Bastard X Hub"
-    GuiConfig.Footer       = GuiConfig.Footer or "Bastard X Hub :3"
+    GuiConfig.Footer       = GuiConfig.Footer or ""
     GuiConfig.Color        = GuiConfig.Color or Color3.fromRGB(255, 105, 180)
     GuiConfig["Tab Width"] = GuiConfig["Tab Width"] or 120
     GuiConfig.Version      = GuiConfig.Version or 1
@@ -2701,7 +2701,7 @@ function BastardXHub:FloatBtn(FloatConfig)
     fb.ZIndex               = 300
     fb.Parent               = sg
     -- Círculo perfeito no botão
-    _RC(fb, S / 2)
+    _RC(fb, 10)
     -- Borda colorida
     local fbStroke = _SK(fb, accentColor, 1.5, 0)
 
