@@ -506,12 +506,17 @@ function BastardXHub:Window(GuiConfig)
 
     -- Temas padrão
     local ThemeColors = {
-        darker   = Color3.fromRGB(12, 12, 12),
-        dark     = Color3.fromRGB(20, 20, 20),
-        midnight = Color3.fromRGB(8,  8,  18),
-        ocean    = Color3.fromRGB(8,  18, 28),
+        darker   = Color3.fromRGB(8,  8,  8),
+        dark     = Color3.fromRGB(15, 15, 15),
+        midnight = Color3.fromRGB(6,  6,  14),
+        ocean    = Color3.fromRGB(6,  14, 22),
     }
+    -- Cor padrão: preto puro
+    GuiConfig.ThemePreset  = GuiConfig.ThemePreset or "darker"
     local _themeColor = ThemeColors[GuiConfig.ThemePreset] or ThemeColors.darker
+
+    -- Cor de destaque padrão: branco se não fornecido
+    GuiConfig.Color = GuiConfig.Color or Color3.fromRGB(255, 255, 255)
 
     if GuiConfig.Theme then
         Main:Destroy()
@@ -2687,5 +2692,200 @@ function BastardXHub:Window(GuiConfig)
 
     return Tabs
 end
+
+-- ╔══════════════════════════════════════════════════════╗
+-- ║              BOTÃO FLUTUANTE (FloatBtn)              ║
+-- ╚══════════════════════════════════════════════════════╝
+function BastardXHub:FloatBtn(FloatConfig)
+    FloatConfig             = FloatConfig or {}
+    FloatConfig.Icon        = FloatConfig.Icon or "eye"
+    FloatConfig.Color       = FloatConfig.Color or Color3.fromRGB(255, 255, 255)
+    FloatConfig.Size        = FloatConfig.Size or 44
+    FloatConfig.Position    = FloatConfig.Position or UDim2.new(0, 20, 0.5, -22)
+    FloatConfig.Callback    = FloatConfig.Callback or function() end
+    FloatConfig.CornerRadius = FloatConfig.CornerRadius or 10  -- 0-22: quadrado arredondado
+
+    local FloatGui = Instance.new("ScreenGui")
+    FloatGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+    FloatGui.Name            = "BastardFloatBtn"
+    FloatGui.ResetOnSpawn    = false
+    FloatGui.Parent          = game:GetService("CoreGui")
+
+    -- Sombra externa
+    local ShadowHolder = Instance.new("Frame")
+    ShadowHolder.BackgroundTransparency = 1
+    ShadowHolder.BorderSizePixel        = 0
+    ShadowHolder.Size  = UDim2.fromOffset(FloatConfig.Size + 20, FloatConfig.Size + 20)
+    ShadowHolder.Position = FloatConfig.Position
+    ShadowHolder.Name  = "ShadowHolder"
+    ShadowHolder.Parent = FloatGui
+
+    local Shadow = Instance.new("ImageLabel")
+    Shadow.Image             = "rbxassetid://6015897843"
+    Shadow.ImageColor3       = Color3.fromRGB(0, 0, 0)
+    Shadow.ImageTransparency = 0.4
+    Shadow.ScaleType         = Enum.ScaleType.Slice
+    Shadow.SliceCenter       = Rect.new(49, 49, 450, 450)
+    Shadow.AnchorPoint       = Vector2.new(0.5, 0.5)
+    Shadow.BackgroundTransparency = 1
+    Shadow.BorderSizePixel   = 0
+    Shadow.Position          = UDim2.new(0.5, 0, 0.5, 0)
+    Shadow.Size              = UDim2.new(1, 20, 1, 20)
+    Shadow.ZIndex            = 0
+    Shadow.Parent            = ShadowHolder
+
+    -- Botão principal
+    local Btn = Instance.new("ImageButton")
+    Btn.AnchorPoint          = Vector2.new(0.5, 0.5)
+    Btn.Position             = UDim2.new(0.5, 0, 0.5, 0)
+    Btn.Size                 = UDim2.fromOffset(FloatConfig.Size, FloatConfig.Size)
+    Btn.BackgroundColor3     = Color3.fromRGB(10, 10, 10)
+    Btn.BorderSizePixel      = 0
+    Btn.AutoButtonColor      = false
+    Btn.Name                 = "FloatBtn"
+    Btn.Parent               = ShadowHolder
+
+    -- Cantos arredondados (quadrado com bordas arredondadas)
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, FloatConfig.CornerRadius)
+    UICorner.Parent = Btn
+
+    -- Borda colorida (stroke)
+    local UIStroke = Instance.new("UIStroke")
+    UIStroke.Color        = FloatConfig.Color
+    UIStroke.Thickness    = 1.8
+    UIStroke.Transparency = 0.3
+    UIStroke.Parent       = Btn
+
+    -- Ícone (tenta pelo Icons.lua, depois tenta como assetid direto)
+    local IconImg = Instance.new("ImageLabel")
+    IconImg.AnchorPoint          = Vector2.new(0.5, 0.5)
+    IconImg.Position             = UDim2.new(0.5, 0, 0.5, 0)
+    IconImg.Size                 = UDim2.fromOffset(FloatConfig.Size - 14, FloatConfig.Size - 14)
+    IconImg.BackgroundTransparency = 1
+    IconImg.BorderSizePixel      = 0
+    IconImg.ImageColor3          = FloatConfig.Color
+    IconImg.ScaleType            = Enum.ScaleType.Fit
+    IconImg.ZIndex               = 2
+    IconImg.Name                 = "Icon"
+    IconImg.Parent               = Btn
+
+    -- Resolve o ícone: chave do Icons.lua OU rbxassetid direto
+    local iconValue = FloatConfig.Icon
+    if Icons and Icons[iconValue] then
+        IconImg.Image = Icons[iconValue]
+    elseif tostring(iconValue):match("^rbxassetid://") then
+        IconImg.Image = iconValue
+    else
+        IconImg.Image = "rbxassetid://" .. tostring(iconValue)
+    end
+
+    -- Efeito ripple ao clicar
+    local function Ripple(x, y)
+        local ripple = Instance.new("Frame")
+        ripple.AnchorPoint       = Vector2.new(0.5, 0.5)
+        ripple.BackgroundColor3  = FloatConfig.Color
+        ripple.BackgroundTransparency = 0.7
+        ripple.BorderSizePixel   = 0
+        ripple.Position          = UDim2.fromOffset(x, y)
+        ripple.Size              = UDim2.fromOffset(0, 0)
+        ripple.ZIndex            = 3
+        ripple.ClipsDescendants  = false
+        ripple.Parent            = Btn
+        local rc = Instance.new("UICorner")
+        rc.CornerRadius = UDim.new(0, FloatConfig.CornerRadius)
+        rc.Parent = ripple
+
+        local size = FloatConfig.Size * 2.2
+        TweenService:Create(ripple, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(size, size),
+            BackgroundTransparency = 1,
+        }):Play()
+        task.delay(0.45, function() ripple:Destroy() end)
+    end
+
+    -- Pulse ao passar o mouse
+    Btn.MouseEnter:Connect(function()
+        TweenService:Create(UIStroke, TweenInfo.new(0.2), { Transparency = 0 }):Play()
+        TweenService:Create(Btn,     TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(22, 22, 22) }):Play()
+    end)
+    Btn.MouseLeave:Connect(function()
+        TweenService:Create(UIStroke, TweenInfo.new(0.25), { Transparency = 0.3 }):Play()
+        TweenService:Create(Btn,      TweenInfo.new(0.25), { BackgroundColor3 = Color3.fromRGB(10, 10, 10) }):Play()
+    end)
+
+    -- Clique: ripple + pulse + callback
+    local visible = true
+    Btn.MouseButton1Click:Connect(function()
+        visible = not visible
+
+        local mp = game:GetService("UserInputService"):GetMouseLocation()
+        local lx  = mp.X - Btn.AbsolutePosition.X
+        local ly  = mp.Y - Btn.AbsolutePosition.Y
+        Ripple(lx, ly)
+
+        -- Pulse (encolhe e volta)
+        TweenService:Create(Btn, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(FloatConfig.Size - 6, FloatConfig.Size - 6)
+        }):Play()
+        task.delay(0.1, function()
+            TweenService:Create(Btn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = UDim2.fromOffset(FloatConfig.Size, FloatConfig.Size)
+            }):Play()
+        end)
+
+        FloatConfig.Callback(visible)
+    end)
+
+    -- Arrastar
+    local dragging, dragStart, startPos = false, nil, nil
+    Btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging  = true
+            dragStart = input.Position
+            startPos  = ShadowHolder.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            ShadowHolder.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    local FloatFunc = {}
+
+    -- Atualizar cor do ícone e stroke (chamável externamente)
+    function FloatFunc:SetColor(color)
+        FloatConfig.Color = color
+        TweenService:Create(UIStroke, TweenInfo.new(0.3), { Color = color }):Play()
+        TweenService:Create(IconImg,  TweenInfo.new(0.3), { ImageColor3 = color }):Play()
+    end
+
+    -- Trocar ícone dinamicamente
+    function FloatFunc:SetIcon(iconNameOrId)
+        if Icons and Icons[iconNameOrId] then
+            IconImg.Image = Icons[iconNameOrId]
+        elseif tostring(iconNameOrId):match("^rbxassetid://") then
+            IconImg.Image = iconNameOrId
+        else
+            IconImg.Image = "rbxassetid://" .. tostring(iconNameOrId)
+        end
+    end
+
+    -- Destruir
+    function FloatFunc:Destroy()
+        FloatGui:Destroy()
+    end
+
+    return FloatFunc
+end
+
 
 return BastardXHub
