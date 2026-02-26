@@ -1335,21 +1335,21 @@ local function BuildConfigPanel(sg, root, winRef, z)
         local sw = Fr(pal.Swatch, 0, "SW_"..palName, z + 33)
         sw.Size = UDim2.fromOffset(swW, swW)
         sw.Parent = cell; RC(sw, swW / 2)
+        sw.ClipsDescendants = false
 
         -- Nome do tema sempre visível abaixo
         local tipLbl = Lb(pal.Label or palName, TH.T2, SA.FS - 3, TH.FR, Enum.TextXAlignment.Center, z + 35)
         tipLbl.Size = UDim2.fromOffset(swW, 12); tipLbl.Parent = cell
         tipLbl.TextColor3 = pal.Swatch
 
-        -- Botão invisível sobre o círculo
-        local swHit = TB(TH.Bg, 1, z + 34); swHit.Size = UDim2.fromOffset(swW, swW)
-        swHit.Position = UDim2.fromOffset(0, 0)
-        swHit.ClipsDescendants = false; swHit.Parent = cell
-
-        -- Anel de seleção (filho do sw)
-        local ring2 = Fr(Color3.new(1,1,1), 1, "_Rng", z + 33)
+        -- Anel de seleção (filho do sw, atrás do botão)
+        local ring2 = Fr(Color3.new(1,1,1), 1, "_Rng", z + 34)
         ring2.AnchorPoint = Vector2.new(0.5, 0.5); ring2.Position = UDim2.new(0.5, 0, 0.5, 0)
-        ring2.Size = UDim2.fromOffset(swW + 5, swW + 5); ring2.Parent = sw; RC(ring2, (swW + 5) / 2)
+        ring2.Size = UDim2.fromOffset(swW + 6, swW + 6); ring2.Parent = sw; RC(ring2, (swW + 6) / 2)
+
+        -- Botão invisível cobre TODA a bolinha (filho do sw para herdar posição correta)
+        local swHit = TB(TH.Bg, 1, z + 36); swHit.Size = UDim2.fromScale(1, 1)
+        swHit.ClipsDescendants = false; swHit.Parent = sw
 
         -- Marca de seleção atual
         local function UpdateRing()
@@ -1680,103 +1680,124 @@ local function BuildIntroScreen(sg, opts, onDone)
     overlay.Position = UDim2.fromScale(0, 0)
     overlay.Parent   = sg
 
-    -- Card central
-    local cardW, cardH = 340, 160
+    -- Card central — tamanho automático vertical
+    local cardW = 320
     local card = Fr(TH.Surface, 0, "_IntroCard", 10000)
-    card.AnchorPoint = Vector2.new(0.5, 0.5)
-    card.Position    = UDim2.new(0.5, 0, 0.5, 0)
-    card.Size        = UDim2.fromOffset(cardW, cardH)
-    card.Parent      = overlay
-    RC(card, 14)
+    card.AnchorPoint    = Vector2.new(0.5, 0.5)
+    card.Position       = UDim2.new(0.5, 0, 0.5, 0)
+    card.Size           = UDim2.fromOffset(cardW, 10)
+    card.AutomaticSize  = Enum.AutomaticSize.Y
+    card.ClipsDescendants = false
+    card.Parent         = overlay
+    RC(card, 12)
     local cardSk = SK(card, TH.Cyan, 1.5, 0.15)
     RegAC(cardSk, "Color", "Cyan")
 
-    -- Linha de acento no topo do card
+    -- Padding interno via UIListLayout vertical
+    PD(card, 18, 18, 20, 20)
+    LV(card, 10)
+
+    -- Linha de acento no topo (posição absoluta, não participa do layout)
     local topBar = Fr(TH.Cyan, 0, "_TB", 10001)
-    topBar.Size = UDim2.new(1, 0, 0, 3)
-    topBar.Parent = card; RC(topBar, 2)
+    topBar.Size        = UDim2.new(1, 0, 0, 3)
+    topBar.Position    = UDim2.fromOffset(0, 0)
+    topBar.AnchorPoint = Vector2.new(0, 0)
+    topBar.Parent      = card
+    topBar.LayoutOrder = -99
+    RC(topBar, 2)
     RegAC(topBar, "BackgroundColor3", "Cyan")
 
     -- Título principal
-    local titleLbl = Lb(title, TH.T1, 22, TH.FB, Enum.TextXAlignment.Center, 10001)
-    titleLbl.Size     = UDim2.new(1, -20, 0, 30)
-    titleLbl.Position = UDim2.fromOffset(10, 26)
-    titleLbl.Parent   = card
+    local titleLbl = Lb(title, TH.T1, 20, TH.FB, Enum.TextXAlignment.Center, 10001)
+    titleLbl.Size        = UDim2.new(1, 0, 0, 28)
+    titleLbl.LayoutOrder = 1
+    titleLbl.Parent      = card
 
-    -- Subtítulo
-    local subLbl = Lb(subtitle, TH.T2, SA.FS - 1, TH.FR, Enum.TextXAlignment.Center, 10001)
-    subLbl.Size     = UDim2.new(1, -20, 0, 18)
-    subLbl.Position = UDim2.fromOffset(10, 60)
-    subLbl.Parent   = card
+    -- Subtítulo (TextWrapped para não cortar)
+    local subLbl = Instance.new("TextLabel")
+    subLbl.BackgroundTransparency = 1
+    subLbl.TextColor3   = TH.T2
+    subLbl.Font         = TH.FR
+    subLbl.TextSize     = SA.FS - 1
+    subLbl.Text         = subtitle
+    subLbl.TextWrapped  = true
+    subLbl.AutomaticSize = Enum.AutomaticSize.Y
+    subLbl.Size         = UDim2.new(1, 0, 0, 0)
+    subLbl.TextXAlignment = Enum.TextXAlignment.Center
+    subLbl.ZIndex       = 10001
+    subLbl.LayoutOrder  = 2
+    subLbl.Parent       = card
+
+    -- Espaçador visual
+    local spacer = Fr(TH.Surface, 1, "_Sp", 10001)
+    spacer.Size        = UDim2.new(1, 0, 0, 4)
+    spacer.LayoutOrder = 3
+    spacer.Parent      = card
 
     -- Barra de progresso (fundo)
     local barBg = Fr(TH.Border, 0, "_BarBg", 10001)
-    barBg.Position = UDim2.fromOffset(20, 96)
-    barBg.Size     = UDim2.new(1, -40, 0, 5)
-    barBg.Parent   = card; RC(barBg, 3)
+    barBg.Size        = UDim2.new(1, 0, 0, 5)
+    barBg.LayoutOrder = 4
+    barBg.Parent      = card
+    RC(barBg, 3)
 
     -- Barra de progresso (fill)
     local barFill = Fr(TH.Cyan, 0, "_BarFill", 10002)
     barFill.Size   = UDim2.new(0, 0, 1, 0)
-    barFill.Parent = barBg; RC(barFill, 3)
+    barFill.Parent = barBg
+    RC(barFill, 3)
     RegAC(barFill, "BackgroundColor3", "Cyan")
 
     -- Texto de porcentagem
     local pctLbl = Lb("0%", TH.TAcc, SA.FS - 2, TH.FM, Enum.TextXAlignment.Center, 10001)
-    pctLbl.Size     = UDim2.new(1, -20, 0, 16)
-    pctLbl.Position = UDim2.fromOffset(10, 108)
-    pctLbl.Parent   = card
+    pctLbl.Size        = UDim2.new(1, 0, 0, 14)
+    pctLbl.LayoutOrder = 5
+    pctLbl.Parent      = card
     RegAC(pctLbl, "TextColor3", "TAcc")
 
-    -- Animação de entrada do card
-    card.BackgroundTransparency = 1
-    titleLbl.TextTransparency   = 1
-    subLbl.TextTransparency     = 1
-    pctLbl.TextTransparency     = 1
-    TweenService:Create(card,  TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-        {BackgroundTransparency=0}):Play()
-    task.delay(0.1, function()
-        TweenService:Create(titleLbl, TH.Med, {TextTransparency=0}):Play()
-        TweenService:Create(subLbl,   TH.Med, {TextTransparency=0}):Play()
-        TweenService:Create(pctLbl,   TH.Med, {TextTransparency=0}):Play()
+    -- Animação de entrada
+    card.BackgroundTransparency  = 1
+    titleLbl.TextTransparency    = 1
+    subLbl.TextTransparency      = 1
+    pctLbl.TextTransparency      = 1
+    barBg.BackgroundTransparency = 1
+    TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {BackgroundTransparency = 0}):Play()
+    TweenService:Create(barBg, TweenInfo.new(0.35, Enum.EasingStyle.Quint),
+        {BackgroundTransparency = 0}):Play()
+    task.delay(0.15, function()
+        TweenService:Create(titleLbl, TH.Med, {TextTransparency = 0}):Play()
+        TweenService:Create(subLbl,   TH.Med, {TextTransparency = 0}):Play()
+        TweenService:Create(pctLbl,   TH.Med, {TextTransparency = 0}):Play()
     end)
 
-    -- Animar barra de progresso ao longo de `duration` segundos
-    local steps = 60
+    -- Animar barra
+    local steps    = 60
     local stepTime = duration / steps
-    local stepPct  = 100 / steps
-    local cur = 0
 
     task.spawn(function()
         for i = 1, steps do
-            cur = math.floor(i * stepPct)
-            -- Varia velocidade: começa rápido, para em ~80%, accelera no fim
-            local eased = cur <= 80
-                and (cur / 80) * 0.8
-                or  0.8 + ((cur - 80) / 20) * 0.2
+            local pct   = i / steps
+            local eased = pct < 0.8 and (pct / 0.8) * 0.78 or 0.78 + ((pct - 0.8) / 0.2) * 0.22
             TweenService:Create(barFill, TweenInfo.new(stepTime * 1.1, Enum.EasingStyle.Quint),
                 {Size = UDim2.new(eased, 0, 1, 0)}):Play()
-            pctLbl.Text = cur .. "%"
+            pctLbl.Text = math.floor(pct * 100) .. "%"
             task.wait(stepTime)
         end
         pctLbl.Text = "100%"
         TweenService:Create(barFill, TH.Med, {Size = UDim2.new(1, 0, 1, 0)}):Play()
-        task.wait(0.4)
-        -- Fade out
-        TweenService:Create(overlay, TweenInfo.new(0.5, Enum.EasingStyle.Quint),
-            {BackgroundTransparency = 1}):Play()
-        TweenService:Create(card, TweenInfo.new(0.5, Enum.EasingStyle.Quint),
-            {BackgroundTransparency = 1}):Play()
-        for _, d in ipairs(card:GetDescendants()) do
-            if d:IsA("TextLabel") then
-                TweenService:Create(d, TweenInfo.new(0.35, Enum.EasingStyle.Quint),
-                    {TextTransparency = 1}):Play()
-            elseif d:IsA("Frame") and d ~= barFill then
-                TweenService:Create(d, TweenInfo.new(0.35, Enum.EasingStyle.Quint),
-                    {BackgroundTransparency = 1}):Play()
-            end
-        end
-        task.delay(0.55, function()
+        task.wait(0.45)
+        -- Fade out tudo
+        local fadeInfo = TweenInfo.new(0.45, Enum.EasingStyle.Quint)
+        TweenService:Create(overlay,   fadeInfo, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(card,      fadeInfo, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(titleLbl,  fadeInfo, {TextTransparency = 1}):Play()
+        TweenService:Create(subLbl,    fadeInfo, {TextTransparency = 1}):Play()
+        TweenService:Create(pctLbl,    fadeInfo, {TextTransparency = 1}):Play()
+        TweenService:Create(barBg,     fadeInfo, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(barFill,   fadeInfo, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(topBar,    fadeInfo, {BackgroundTransparency = 1}):Play()
+        task.delay(0.5, function()
             overlay:Destroy()
             if onDone then onDone() end
         end)
